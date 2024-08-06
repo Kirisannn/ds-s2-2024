@@ -11,47 +11,47 @@ public class CalculatorClient {
             Calculator c = (Calculator) Naming.lookup("rmi://localhost:1100/CalculatorServer");
 
             // Run tests
+            // Testing Min
             c.pushValue(5);
             c.pushValue(10);
             c.pushValue(15);
-
             c.pushOperation("min");
-            System.out.println("Min: " + c.pop());
+            System.out.println("Min:\t" + c.pop());
 
+            // Testing Max
             c.pushValue(5);
             c.pushValue(10);
             c.pushValue(15);
-
             c.pushOperation("max");
-            System.out.println("Max: " + c.pop());
+            System.out.println("Max:\t" + c.pop());
 
+            // Testing LCM
             c.pushValue(5);
             c.pushValue(10);
             c.pushValue(15);
-
             c.pushOperation("lcm");
-            System.out.println("LCM: " + c.pop());
+            System.out.println("LCM:\t" + c.pop());
 
+            // Testing GCD
             c.pushValue(5);
             c.pushValue(10);
             c.pushValue(15);
-
             c.pushOperation("gcd");
-            System.out.println("GCD: " + c.pop());
+            System.out.println("GCD:\t" + c.pop());
 
-            // Test isEmpty()
-            System.out.println("Stack is empty: " + c.isEmpty());
+            // Testing isEmpty()
+            System.out.println("Stack is empty:\t" + c.isEmpty());
 
-            // Test delayPop(200) - 200ms delay
+            // Testing delayPop(2000) - 2000ms(2s) delay
             c.pushValue(5);
             c.pushValue(10);
             c.pushValue(15);
-            c.delayPop(2000);
-            System.out.println("Min: " + c.pop() + " (delayed 2000ms)");
+            System.out.println("Delayed Pop:\t" + c.delayPop(2000) + "\tdelayed 2000ms");
+            System.out.println("New Min stack value:\t" + c.pop());  // 10
 
             System.out.println("Tests Completed");
         } catch (MalformedURLException | NotBoundException | RemoteException e) {
-            System.err.println("Client Exception: " + e.toString());
+            System.err.println("Client Exception:\t" + e.toString());
         }
     }
 }
