@@ -1,18 +1,23 @@
-Calculator:	Server/Calculator.java Server/CalculatorImplementation.java Server/CalculatorServer.java Client/CalculatorClient.java
-	javac -d . Server/Calculator.java Server/CalculatorImplementation.java Server/CalculatorServer.java Client/CalculatorClient.java
+all:
+	make Calculator
+	make test
+	make clean
+
+Calculator:	Calculator.java CalculatorImplementation.java CalculatorServer.java CalculatorClient.java
+	javac Calculator.java CalculatorImplementation.java CalculatorServer.java CalculatorClient.java
 
 rmiregistry:
 	rmiregistry &
 
 runServer:	rmiregistry
-	java Server.CalculatorServer &
+	java CalculatorServer &
 
 runClient:	
-	java Client.CalculatorClient
+	java CalculatorClient
 
 test:	Calculator runServer
 	sleep 2
 	make runClient
 
 clean:
-	rm -rf Server/*.class Client/*.class *.class
+	rm -rf *.class

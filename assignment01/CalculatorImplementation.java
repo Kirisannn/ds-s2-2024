@@ -15,13 +15,13 @@ public class CalculatorImplementation extends UnicastRemoteObject implements Cal
 
     // Take val and push it on to the top of the stack.
     @Override
-    public synchronized void pushValue(int val) throws RemoteException {
+    public void pushValue(int val) throws RemoteException {
         stack.push(val);
         System.out.println("Pushed:\t" + val);
     }
 
     // Euclidean algorithm for gcd of two values
-    private synchronized int gcd(int a, int b) {
+    private int gcd(int a, int b) {
         if (b == 0) {
             return a;
         }
@@ -29,7 +29,7 @@ public class CalculatorImplementation extends UnicastRemoteObject implements Cal
     }
 
     // gcd of multiple values
-    private synchronized int gcd(Stack<Integer> values) {
+    private int gcd(Stack<Integer> values) {
         int result = values.pop();
         while (!values.isEmpty()) {
             result = gcd(result, values.pop());
@@ -38,12 +38,12 @@ public class CalculatorImplementation extends UnicastRemoteObject implements Cal
     }
 
     // Least common multiple of two values using euclidean algorithm for gcd()
-    private synchronized int lcm(int a, int b) {
+    private int lcm(int a, int b) {
         return a * (b / gcd(a, b)); // Formula for lowest common multiple
     }
 
     // lcm of multiple values
-    private synchronized int lcm(Stack<Integer> values) {
+    private int lcm(Stack<Integer> values) {
         int result = values.pop();
         while (!values.isEmpty()) {
             result = lcm(result, values.pop());
@@ -58,7 +58,7 @@ public class CalculatorImplementation extends UnicastRemoteObject implements Cal
     // for lcm - push the least common multiple of all the popped values;
     // for gcd - push the greatest common divisor of all the popped values
     @Override
-    public synchronized void pushOperation(String operator) throws RemoteException {
+    public void pushOperation(String operator) throws RemoteException {
         if (stack.isEmpty()) {  // Base case: if stack is empty, return
             return;
         }
@@ -84,7 +84,7 @@ public class CalculatorImplementation extends UnicastRemoteObject implements Cal
 
     // Pop the top of the stack and return it to the client.
     @Override
-    public synchronized int pop() throws RemoteException {
+    public int pop() throws RemoteException {
         if (stack.isEmpty()) {
             throw new IllegalStateException("\n============\nThe Stack is Empty zzz...\n============\n");
         }
@@ -94,13 +94,13 @@ public class CalculatorImplementation extends UnicastRemoteObject implements Cal
 
     // Return true if the stack is empty, false otherwise.
     @Override
-    public synchronized boolean isEmpty() throws RemoteException {
+    public boolean isEmpty() throws RemoteException {
         return stack.isEmpty();
     }
 
     // Wait millis milliseconds before carrying out the pop operation as above.
     @Override
-    public synchronized int delayPop(int millis) throws RemoteException {
+    public int delayPop(int millis) throws RemoteException {
         try {
             Thread.sleep(millis);
         } catch (InterruptedException e) {

@@ -47,7 +47,8 @@ public class CalculatorClient {
             c.pushValue(10);
             c.pushValue(15);
             System.out.println("Delayed Pop:\t" + c.delayPop(2000) + "\tdelayed 2000ms");
-            System.out.println("New Min stack value:\t" + c.pop());  // 10
+
+            System.out.println("New top stack value:\t" + c.pop());
 
             System.out.println("Tests Completed");
         } catch (MalformedURLException | NotBoundException | RemoteException e) {
