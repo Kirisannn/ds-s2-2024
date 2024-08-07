@@ -1,34 +1,24 @@
+// Implementation for Calculator
+package com.example.calculator;
 
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.Stack;
 
-// Implementation for Calculator
 public class CalculatorImplementation extends UnicastRemoteObject implements Calculator {
-    private final Map<String, Stack<Integer>> stacks;
-    private final ReentrantLock lock;
 
+    private final Stack<Integer> stack;
+
+    // Constructor
     protected CalculatorImplementation() throws RemoteException {
-        stacks = new HashMap<>();
-        lock = new ReentrantLock();
-    }
-
-    private Stack<Integer> getStack(String clientID) {
-        lock.lock();
-
-        try {
-            return stacks.computeIfAbsent(clientID, k -> new Stack<>());
-        } finally {
-            lock.unlock();
-        }
+        stack = new Stack<>();
     }
 
     // Take val and push it on to the top of the stack.
     @Override
-    public void pushValue(int val, String clientID) throws RemoteException {
-        Stack<Integer> stack = getStack(clientID);
+    public void pushValue(int val) throws RemoteException {
         stack.push(val);
+        System.out.println("Pushed:\t" + val);
     }
 
     // Euclidean algorithm for gcd of two values
@@ -62,17 +52,16 @@ public class CalculatorImplementation extends UnicastRemoteObject implements Cal
         return result;
     }
 
-    // Push a String containing an operator("min", "max", "lcm", "gcd") to the stack,
+    // Push a String containing an operator("min", "max", "lcm", "gcd") to the
+    // stack,
     // which will cause the server to pop all the values on the stack and:
     // for min - push the min value of all the popped values;
     // for max - push the max value of all the popped values
     // for lcm - push the least common multiple of all the popped values;
     // for gcd - push the greatest common divisor of all the popped values
     @Override
-    public void pushOperation(String operator, String clientID) throws RemoteException {
-        Stack<Integer> stack = getStack(clientID);
-
-        if (stack.isEmpty()) {  // Base case: if stack is empty, return
+    public void pushOperation(String operator) throws RemoteException {
+        if (stack.isEmpty()) { // Base case: if stack is empty, return
             return;
         }
 
@@ -87,40 +76,40 @@ public class CalculatorImplementation extends UnicastRemoteObject implements Cal
             case "gcd" ->
                 result = gcd(stack);
             default ->
-                throw new IllegalArgumentException(
-                        "\n========================\nInvalid Operator\n========================\n");
+                throw new IllegalArgumentException("\n============\nInvalid Operator\n============\n");
         }
 
+        System.out.println("\n============\n" + operator.toUpperCase() + ":\t" + result + "\n============\n");
         stack.clear();
         stack.push(result);
     }
 
     // Pop the top of the stack and return it to the client.
     @Override
-    public int pop(String clientID) throws RemoteException {
-        Stack<Integer> stack = getStack(clientID);
+    public int pop() throws RemoteException {
         if (stack.isEmpty()) {
-            System.err.println(
-                    "\n========================\nThe Stack is Empty zzz...\n========================\n");
+            throw new IllegalStateException("\n============\nThe Stack is Empty zzz...\n============\n");
         }
+        System.out.println("\n============\nPopped:\t" + stack.peek() + "\n============\n");
         return stack.pop();
     }
 
     // Return true if the stack is empty, false otherwise.
     @Override
-    public boolean isEmpty(String clientID) throws RemoteException {
-        Stack<Integer> stack = getStack(clientID);
+    public boolean isEmpty() throws RemoteException {
         return stack.isEmpty();
     }
 
     // Wait millis milliseconds before carrying out the pop operation as above.
     @Override
-    public int delayPop(int millis, String clientID) throws RemoteException {
+    public int delayPop(int millis) throws RemoteException {
         try {
             Thread.sleep(millis);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        return pop(clientID);
+        System.out
+                .println("\n========================\nDelayed Pop:\t" + stack.peek() + "\n========================\n");
+        return this.pop();
     }
 }

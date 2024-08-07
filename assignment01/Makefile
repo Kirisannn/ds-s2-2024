@@ -1,23 +1,15 @@
-all:
-	make Calculator
-	make test
-	make clean
-
-Calculator:	Calculator.java CalculatorImplementation.java CalculatorServer.java CalculatorClient.java
+# Compile all Java files
+compile:
 	javac Calculator.java CalculatorImplementation.java CalculatorServer.java CalculatorClient.java
 
-rmiregistry:
+# RMIRegistry
+rmiRegistry:
 	rmiregistry &
 
-runServer:	rmiregistry
-	java CalculatorServer &
+# Run the CalculatorServer
+runServer:
+	java CalculatorServer
 
-runClient:	
+# Run the CalculatorClient
+runClient:
 	java CalculatorClient
-
-test:	Calculator runServer
-	sleep 2
-	make runClient
-
-clean:
-	rm -rf *.class
