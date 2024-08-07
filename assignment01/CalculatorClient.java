@@ -51,7 +51,7 @@ public class CalculatorClient {
                 String clientId = "Client" + Thread.currentThread().getName();
                 Calculator calculator = (Calculator) Naming.lookup("rmi://localhost:1100/CalculatorServer");
                 calculator.pushValue(value, clientId);
-                if (delay > 0) {
+                if (delay > 0) {    
                     System.out.println(clientId + " Popped w/ delay: " + calculator.delayPop(delay, clientId));
                 } else {
                     System.out.println(clientId + " Popped w/o delay: " + calculator.pop(clientId));

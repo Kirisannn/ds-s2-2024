@@ -1,6 +1,8 @@
+DIR = assignment01
+
 # Compile all Java files
 compile:
-	javac Calculator.java CalculatorImplementation.java CalculatorServer.java CalculatorClient.java
+	javac $(DIR)/Calculator.java $(DIR)/CalculatorImplementation.java $(DIR)/CalculatorServer.java $(DIR)/CalculatorClient.java
 
 # RMIRegistry
 rmiRegistry:
