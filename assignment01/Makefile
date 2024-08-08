@@ -1,8 +1,6 @@
-DIR = assignment01
-
 # Compile all Java files
 compile:
-	javac $(DIR)/Calculator.java $(DIR)/CalculatorImplementation.java $(DIR)/CalculatorServer.java $(DIR)/CalculatorClient.java
+	javac -d builds Calculator.java CalculatorImplementation.java CalculatorServer.java CalculatorClient.java
 
 # RMIRegistry
 rmiRegistry:
@@ -15,3 +13,6 @@ runServer:
 # Run the CalculatorClient
 runClient:
 	java CalculatorClient
+
+clean:
+	rm -rf builds/*.class

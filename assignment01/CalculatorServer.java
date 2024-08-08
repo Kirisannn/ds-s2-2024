@@ -1,4 +1,4 @@
-// Server side program for Calculator RMI application
+
 
 import java.net.MalformedURLException;
 import java.rmi.*;

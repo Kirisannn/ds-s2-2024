@@ -1,4 +1,4 @@
-// Interface of server
+
 
 import java.rmi.*;
 
