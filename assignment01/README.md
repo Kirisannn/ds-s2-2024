@@ -41,10 +41,6 @@ How to run (Automated Testing):
     2.  "tests.log" will contain log file of JUnit testing output.
     3.  (OPTIONAL) Run "make clean" to clean up directory.
 
-Dependencies:
-    JUnit standalone console jar has been used to conduct automated testing.
-    The jar is located in the subdirectory "test-lib".
-
 Testing:
     Tests have been run automatically with make, utilising JUnit Jupiter (JUnit 5).
     Tests include:
@@ -70,4 +66,7 @@ Testing:
                 pre-determined delay in some.
             -   Expecting output client order to be 1st or 4th as first two, followed by 
                 5th, 3rd and 2nd clients.
-        
+
+Dependencies:
+    JUnit standalone console jar has been used to conduct automated testing.
+    The jar is located in the subdirectory "test-lib".
