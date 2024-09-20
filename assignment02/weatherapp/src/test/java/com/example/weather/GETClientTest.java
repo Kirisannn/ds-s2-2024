@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.concurrent.CountDownLatch;
 
 import org.junit.jupiter.api.AfterAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,20 +32,31 @@ public class GETClientTest {
     }
 
     @Test
-    public void testGetClient() {
-        String response = "";
+    public void testMultipleClients() throws InterruptedException {
+        int numberOfClients = 5;
+        CountDownLatch latch = new CountDownLatch(numberOfClients);
+        String expectedResponse = "Weather data: Sample weather data.";
 
-        try (Socket socket = new Socket("localhost", 8080);
-                PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-                BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+        for (int i = 0; i < numberOfClients; i++) {
+            new Thread(() -> {
+                String response = "";
+                try (Socket socket = new Socket("localhost", 8080);
+                        PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                        BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
-            out.println("GET"); // Send GET request
-            response = in.readLine(); // Read server response
-        } catch (IOException e) {
-            System.err.println("Error connecting to server: " + e.getMessage());
+                    out.println("GET"); // Send GET request
+                    response = in.readLine(); // Read server response
+                } catch (IOException e) {
+                    System.err.println("Could not connect to server: " + e.getMessage());
+                }
+
+                // Assert the response in the context of the thread
+                assertEquals(expectedResponse, response);
+                latch.countDown(); // Decrement the latch count
+            }).start();
         }
 
-        assertEquals("Weather data: Sample weather data.", response);
+        latch.await(); // Wait for all clients to finish
     }
 
     @AfterAll
