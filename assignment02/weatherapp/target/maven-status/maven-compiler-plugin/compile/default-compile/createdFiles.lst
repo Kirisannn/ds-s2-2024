@@ -1,0 +1,3 @@
+com/example/weather/AggregationServer.class
+com/example/weather/LamportClock.class
+com/example/weather/GETClient.class
