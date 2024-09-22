@@ -1,8 +1,12 @@
 package com.example.weather;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -11,10 +15,12 @@ import com.google.gson.JsonSyntaxException;
 
 import static spark.Spark.get;
 import static spark.Spark.port;
+import static spark.Spark.put;
 
 public class AggregationServer {
     private static final int DEFAULT_PORT = 4567;
     private static final String WEATHER_CACHE = "src/main/resources/weather_cache.json";
+    private static final String TEMP_FILE = "src/main/resources/weather_cache_temp.json";
 
     public static void main(String[] args) {
         int port = DEFAULT_PORT;
@@ -49,6 +55,56 @@ public class AggregationServer {
 
                 // return an error message
                 return "{\"error\": \"Failed to load data. Either the file is missing or the JSON is invalid.\"}";
+            }
+        });
+
+        // Endpoint for POST requests
+        put("/weather", (req, res) -> {
+            System.out.println("Received a PUT request from: " + req.ip());
+
+            // Check if the request body is empty
+            if (req.body().trim().isEmpty()) {
+                res.status(204); // HTTP No Content
+                return "{\"error:\": \"Empty request body. Nothing was sent. :(\"}"; // Return an empty response for 204
+                                                                                     // status
+            }
+
+            // Parse as JSON array
+            try {
+                JsonArray newWeatherData = JsonParser.parseString(req.body()).getAsJsonArray();
+
+                // Write to temp file
+                try (BufferedWriter writer = new BufferedWriter(new FileWriter(TEMP_FILE))) {
+                    writer.write(newWeatherData.toString());
+                } catch (IOException e) {
+                    System.err.println("Error writing to file: " + e.getMessage());
+                    res.status(500); // Internal server error if writing fails
+                    return "{\"error\": \"Failed to write data to file.\"}";
+                }
+
+                // Check if weather_cache.json already exists
+                File weatherCacheFile = new File(WEATHER_CACHE);
+                boolean firstPUT = !weatherCacheFile.exists();
+
+                // If successful, replace the main weather_cache.json with the temp file
+                try {
+                    Files.copy(Paths.get(TEMP_FILE), Paths.get(WEATHER_CACHE), StandardCopyOption.REPLACE_EXISTING);
+                    // If it's the first time creating the file, return 201 Created
+                    if (firstPUT) {
+                        res.status(201); // HTTP_CREATED
+                        return "{\"message\": \"Data created successfully.\"}";
+                    } else {
+                        // For subsequent updates, return 200 OK
+                        res.status(200); // HTTP_OK
+                        return "{\"message\": \"Data updated successfully.\"}";
+                    }
+                } catch (IOException e) {
+                    res.status(500); // Internal server error
+                    return "{\"error\": \"Failed to update data in weather_cache.json.\"}";
+                }
+            } catch (JsonSyntaxException e) {
+                res.status(500); // Bad request if JSON is invalid
+                return "{\"error\": \"Invalid JSON format.\"}";
             }
         });
     }
