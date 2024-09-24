@@ -18,6 +18,12 @@ public class AggregationServer {
     // Path to the weather cache file
     private static final String WEATHER_CACHE = "src/main/resources/weather_db_cache.json";
 
+    // Error Constants
+    private static final String ERROR_MISSING_FILE = "{\"error\": \"Failed to load data. File is missing.\"}";
+    private static final String ERROR_STATION_NOT_FOUND = "{\"error\": \"Station not found.\"}";
+    private static final String ERROR_PORT_OUT_OF_RANGE = "Port out of range. Using default port ";
+    private static final String ERROR_INVALID_PORT_FORMAT = "Invalid port number format. Using default port ";
+
     public static void main(String[] args) {
         int port = DEFAULT_PORT; // Default port for your server
 
@@ -28,11 +34,11 @@ public class AggregationServer {
 
                 if (port < 0 || port > 65535) {
                     port = DEFAULT_PORT;
-                    System.err.println("Port out of range. Using default port " + port);
+                    System.err.println(ERROR_PORT_OUT_OF_RANGE + port);
                 }
             } catch (NumberFormatException e) {
                 port = DEFAULT_PORT;
-                System.err.println("Invalid port number format. Using default port " + port);
+                System.err.println(ERROR_INVALID_PORT_FORMAT + port);
             }
         }
 
@@ -60,9 +66,9 @@ public class AggregationServer {
                 res.status(404); // Internal server error if loading fails
 
                 if (!Files.exists(Paths.get(WEATHER_CACHE))) {
-                    return "{\"error\": \"Failed to load data. File is missing.\"}";
+                    return ERROR_MISSING_FILE;
                 }
-                return "{\"error\": \"Station not found.\"}";
+                return ERROR_STATION_NOT_FOUND;
             }
         });
     }
