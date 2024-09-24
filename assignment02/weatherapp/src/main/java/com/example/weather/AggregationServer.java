@@ -11,7 +11,11 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 
 import static spark.Spark.get;
+import static spark.Spark.head;
+import static spark.Spark.notFound;
 import static spark.Spark.port;
+import static spark.Spark.put;
+
 
 public class AggregationServer {
     private static final int DEFAULT_PORT = 4567; // Default port for your server
@@ -21,8 +25,9 @@ public class AggregationServer {
     // Error Constants
     private static final String ERROR_MISSING_FILE = "{\"error\": \"Failed to load data. File is missing.\"}";
     private static final String ERROR_STATION_NOT_FOUND = "{\"error\": \"Station not found.\"}";
-    private static final String ERROR_PORT_OUT_OF_RANGE = "Port out of range. Using default port ";
-    private static final String ERROR_INVALID_PORT_FORMAT = "Invalid port number format. Using default port ";
+    private static final String ERROR_PORT_OUT_OF_RANGE = "\"error\": \"Port out of range. Using default port \"}";
+    private static final String ERROR_INVALID_PORT_FORMAT = "{\"error\": \"Invalid port number format. Using default port \"}";
+    private static final String ERROR_BAD_REQUEST = "{\"error\": \"HTTP request type is unsupported.\"}";
 
     public static void main(String[] args) {
         int port = DEFAULT_PORT; // Default port for your server
@@ -70,6 +75,25 @@ public class AggregationServer {
                 }
                 return ERROR_STATION_NOT_FOUND;
             }
+        });
+
+        // Endpoint for PUT requests
+        put("/weather", (req, res) -> {
+            // Implementation for handling PUT requests goes here
+            res.status(200);
+            return "{\"message\": \"PUT request received\"}";
+        });
+
+        // Endpoint for HEAD requests
+        head("/*", (req, res) -> {
+            res.status(400);
+            return ERROR_BAD_REQUEST;
+        });
+
+        // Endpoint for all other requests
+        notFound((req, res) -> {
+            res.status(400);
+            return ERROR_BAD_REQUEST;
         });
     }
 
