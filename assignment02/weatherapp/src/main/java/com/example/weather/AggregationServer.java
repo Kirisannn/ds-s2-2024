@@ -49,7 +49,7 @@ public class AggregationServer {
             System.out.println("Received a GET request from: " + req.ip());
             res.type("application/json");
 
-            // Get station id from query parameter
+            // Get station id from query param
             String station_id = req.queryParams("id");
 
             // Load data from file, with or without station id
