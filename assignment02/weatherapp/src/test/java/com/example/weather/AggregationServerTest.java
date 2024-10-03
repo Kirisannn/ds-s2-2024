@@ -4,8 +4,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
@@ -13,27 +12,17 @@ import static io.restassured.RestAssured.given;
 public class AggregationServerTest {
     private static final int DEFAULT_PORT = 4567;
 
-    @BeforeEach
-    public void setup() {
-        // Start the server on the default port before each test
-        new Thread(() -> {
+    @BeforeAll
+    public static void setup() {
             String[] args = { String.valueOf(DEFAULT_PORT) };
             AggregationServer.main(args);
-        }).start();
-
-        // Wait for the server to start up
-        try {
-            Thread.sleep(2000); // Allow some time for the server to start
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
     }
 
-    @AfterEach
-    public void tearDown() {
-        // Stop the server after each test
-        AggregationServer.stopServer();
-    }
+    // @AfterEach
+    // public void tearDown() {
+    // // Stop the server after each test
+    // AggregationServer.stopServer();
+    // }
 
     /**
      * Initial test to verify the server responds with status 201 for a valid first
