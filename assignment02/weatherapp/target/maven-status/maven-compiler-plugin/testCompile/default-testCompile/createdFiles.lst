@@ -1,1 +1,3 @@
 com/example/weather/AggregationServerTest.class
+com/example/weather/ContentServerTest.class
+com/example/weather/GETClientTest.class
