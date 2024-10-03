@@ -4,9 +4,10 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.nio.file.StandardCopyOption;
+import java.util.concurrent.PriorityBlockingQueue;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -20,292 +21,340 @@ import static spark.Spark.notFound;
 import static spark.Spark.port;
 import static spark.Spark.put;
 
-
 public class AggregationServer {
     private static final int DEFAULT_PORT = 4567; // Default port for your server
-    // Path to the weather cache file
-    private static final String WEATHER_CACHE = "src/main/resources/weather_db_cache.json";
-    private static final String TEMP_FILE = "src/main/resources/temp.json";
 
-    // Message Constants
-    private static final String ERROR_MISSING_FILE = "{\"error\": \"Failed to load data. File is missing.\"}";
-    private static final String ERROR_STATION_NOT_FOUND = "{\"error\": \"Station not found.\"}";
-    private static final String ERROR_PORT_OUT_OF_RANGE = "\"error\": \"Port out of range. Using default port \"}";
-    private static final String ERROR_INVALID_PORT_FORMAT = "{\"error\": \"Invalid port number format. Using default port \"}";
-    private static final String ERROR_BAD_REQUEST = "{\"error\": \"HTTP request type is unsupported.\"}";
-    private static final String ERROR_NOT_JSON_ARRAY = "{\"error\": \"Expected a JSON array.\"}";
-    private static final String ERROR_INVALID_JSON_FORMAT = "{\"error\": \"Invalid JSON format.\"}";
-    private static final String ERROR_FILE_CREATION_FAILED = "{\"error\": \"Failed to create weather cache file.\"}";
-    private static final String ERROR_FILE_WRITE_FAILED = "{\"error\": \"Failed to write data to file.\"}";
-    private static final String ERROR_FAILED_UPDATE_TEMP = "{\"error\": \"Failed to update TEMP.\"}";
-    private static final String ERROR_FAILED_UPDATE = "{\"error\": \"Failed to update weather cache.\"}";
-    private static final String ERROR_FAILED_DELETE = "{\"error\": \"Failed to delete file\"}";
-    private static final String WEATHER_CACHE_CREATED = "{\"message\": \"Weather cache created.\"}";
-    private static final String WEATHER_CACHE_UPDATED = "{\"message\": \"Weather cache updated.\"}";
-    private static final String GRACEFUL_SHUTDOWN = "{\"message\": \"Server shutting down.\"}";
+    // File Paths
+    private static final Path WEATHER = Paths.get("src/main/resources/weather.json");
+    private static final Path WEATHER2 = Paths.get("src/main/resources/weather2.json");
+    private static final Path TEMP = Paths.get("src/main/resources/temp.json");
+
+    // Lamport lamportClock instance
+    private static final LamportClock lamportClock = new LamportClock();
+
+    // Priority queue to store PUT requests based on Lamport clock timestamps
+    private static final PriorityBlockingQueue<LamportRequest> putQueue = new PriorityBlockingQueue<>();
 
     public static void main(String[] args) {
-        int port = DEFAULT_PORT; // Default port for your server
-
-        // Cleanup
-        try {
-            // Delete the TEMP_FILE if it exists
-            if (Files.exists(Paths.get(TEMP_FILE))) {
-                Files.delete(Paths.get(TEMP_FILE));
-                System.out.println("temp.json deleted");
-            }
-        } catch (IOException e) {
-            System.err.println(ERROR_FAILED_DELETE + ": " + e.getMessage());
-        }
+        cleanup();
 
         // Register shutdown hook for cleanup
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println(GRACEFUL_SHUTDOWN);
-            try {
-                // Delete weather_db_cache.json if it exists
-                if (Files.exists(Paths.get(WEATHER_CACHE))) {
-                    Files.delete(Paths.get(WEATHER_CACHE));
-                    System.out.println("weather_db_cache.json deleted");
-                }
-            } catch (IOException e) {
-                System.err.println(ERROR_FAILED_DELETE + ": " + e.getMessage());
+        registerShutdown();
 
-            }
-            System.out.println("Cleanup complete. Server shutting down.");
-        }));
-
-        // Check if a port number is provided
-        if (args.length > 0) {
-            try {
-                port = Integer.parseInt(args[0]);
-
-                if (port < 0 || port > 65535) {
-                    port = DEFAULT_PORT;
-                    System.err.println(ERROR_PORT_OUT_OF_RANGE + port);
-                }
-            } catch (NumberFormatException e) {
-                port = DEFAULT_PORT;
-                System.err.println(ERROR_INVALID_PORT_FORMAT + port);
-            }
+        // Receive port
+        int port = args.length < 1 ? DEFAULT_PORT : Integer.parseInt(args[0]);
+        if (port < 0 || port > 65535) {
+            port = DEFAULT_PORT;
+            System.err.println("{\"Error\": \"Port out of range: " + port + "\"}");
         }
 
         // Start the server
+        startServer(port);
+
+        get("/*", (req, res) -> {
+            // Retrieve the Lamport timestamp from the request headers
+            String receivedTimestampStr = req.headers("Lamport-Timestamp");
+            if (receivedTimestampStr != null) {
+                try {
+                    int receivedTimestamp = Integer.parseInt(receivedTimestampStr);
+                    System.out.println(
+                            "Received a GET request from: " + req.ip() + " | Lamport Clock: " + receivedTimestamp);
+
+                    // Update the Lamport clock based on the received timestamp
+                    lamportClock.update(receivedTimestamp);
+                } catch (NumberFormatException e) {
+                    System.err.println("Invalid Lamport timestamp format in headers: " + e.getMessage());
+                    res.status(400); // Bad Request
+                    return "{\"Error\": \"Invalid Lamport timestamp format.\"}\n";
+                }
+            } else {
+                System.err.println("No Lamport timestamp provided in the request headers.");
+                res.status(400); // Bad Request
+                return "{\"Error\": \"Lamport timestamp not found in the request headers.\"}\n";
+            }
+
+            // Increment Lamport clock for the outgoing response
+            int currentTimestamp = lamportClock.increment();
+            System.out.println("Current Lamport Clock after increment: " + currentTimestamp);
+
+            // Wait for all preceding PUT requests to be processed
+            processPutQueue();
+
+            // Return the updated feed after all preceding PUTs are applied
+            JsonArray data = readData(WEATHER);
+            res.type("application/json");
+            res.header("Lamport-Timestamp", currentTimestamp);
+            
+            // Debug output for lamport timestamp
+            System.out.println("Lamport timestamp sent in headers: " + currentTimestamp);
+            return data;
+        });
+
+        // Endpoint for PUT requests
+        put("/*", (req, res) -> {
+            String body = req.body(); // Retrieve the request body
+
+            boolean dataExists = fileExists(WEATHER);
+
+            // Check if the request body is empty
+            if (body.isEmpty()) {
+                res.status(204); // No Content
+                return "{\"Error\": \"Empty request body.\"}\n";
+            }
+
+            // Retrieve the Lamport timestamp from the request headers
+            String receivedTimestampStr = req.headers("Lamport-Timestamp");
+            if (receivedTimestampStr != null) {
+                try {
+                    int receivedTimestamp = Integer.parseInt(receivedTimestampStr);
+                    System.out.println(
+                            "Received a PUT request from: " + req.ip() + " | Lamport Clock: " + receivedTimestamp);
+                    lamportClock.update(receivedTimestamp); // Update the Lamport clock based on the received timestamp
+                } catch (NumberFormatException e) {
+                    System.err.println("Invalid Lamport timestamp format in headers: " + e.getMessage());
+                    res.status(400); // Bad Request
+                    return "{\"Error\": \"Invalid Lamport timestamp format.\"}\n";
+                }
+            } else {
+                System.err.println("No Lamport timestamp provided in the request headers.");
+                res.status(400); // Bad Request
+                return "{\"Error\": \"Lamport timestamp not found in the request headers.\"}\n";
+            }
+
+            // Increment Lamport clock for outgoing response
+            int currentTimestamp = lamportClock.increment();
+
+            // Parse the incoming JSON content
+            JsonObject newEntry;
+            try {
+                newEntry = JsonParser.parseString(body).getAsJsonObject();
+            } catch (JsonSyntaxException e) {
+                System.err.println("Failed to parse JSON: " + e.getMessage());
+                res.status(400); // Bad Request
+                return "{\"Error\": \"Invalid JSON format.\"}\n";
+            }
+
+            // Add the Lamport timestamp to the JSON object
+            newEntry.addProperty("lamport_timestamp", currentTimestamp);
+
+            // Add the PUT request to the queue based on the timestamp
+            putQueue.add(new LamportRequest(currentTimestamp, newEntry));
+
+            // Process the PUT queue
+            processPutQueue();
+
+            // Add Lamport timestamp to response header
+            res.header("Lamport-Timestamp", String.valueOf(currentTimestamp));
+
+            // Return appropriate status
+            if (!dataExists) {
+                res.status(201);
+                return "{\"Success\": \"Weather data created!\"}\n";
+            }
+            res.status(200);
+            return "{\"Success\": \"Weather data updated!\"}\n";
+        });
+
+        // Endpoint for HEAD requests
+        head("/*", (req, res) -> {
+            res.status(400);
+            return "{\"Error\": \"Request type not supported.\"}\n";
+        });
+
+        // Endpoint for all other requests
+        notFound((req, res) -> {
+            res.status(400);
+            return "{\"Error\": \"Request type not supported.\"}\n";
+        });
+    }
+
+    // Cleanup function to clear temp.json
+    private synchronized static void cleanup() {
+        try {
+            if (Files.exists(TEMP)) {
+                Files.delete(TEMP);
+                System.out.println("temp.json deleted");
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to delete temp.json: " + e.getMessage());
+        }
+    }
+
+    // Graceful shutdown hook
+    private synchronized static void registerShutdown() {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                if (Files.exists(WEATHER)) {
+                    Files.delete(WEATHER);
+                    System.out.println("weather.json deleted");
+                }
+            } catch (IOException e) {
+                System.err.println("Failed to delete weather.json: " + e.getMessage());
+            }
+
+            try {
+                if (Files.exists(WEATHER2)) {
+                    Files.delete(WEATHER2);
+                    System.out.println("weather2.json deleted");
+                }
+            } catch (IOException e) {
+                System.err.println("Failed to delete weather2.json: " + e.getMessage());
+            }
+
+            try {
+                if (Files.exists(TEMP)) {
+                    Files.delete(TEMP);
+                    System.out.println("temp.json deleted");
+                }
+            } catch (IOException e) {
+                System.err.println("Failed to delete temp.json: " + e.getMessage());
+            }
+        }));
+    }
+
+    // Server startup
+    private synchronized static void startServer(int port) {
         try {
             port(port);
             System.out.println("Server started on port: " + port);
         } catch (Exception e) {
             System.err.println("Failed to start server on port: " + port);
         }
-
-        // Endpoint for GET requests
-        get("/weather", (req, res) -> {
-            System.out.println("Received a GET request from: " + req.ip());
-            res.type("application/json");
-
-            // Get station id from query param
-            String station_id = req.queryParams("id");
-
-            // Load data from file, with or without station id
-            String jsonResponse = loadDataFromFile(station_id);
-            if (jsonResponse != null) {
-                return jsonResponse;
-            } else {
-                res.status(404); // Internal server error if loading fails
-
-                if (!Files.exists(Paths.get(WEATHER_CACHE))) {
-                    return ERROR_MISSING_FILE;
-                }
-                return ERROR_STATION_NOT_FOUND;
-            }
-        });
-
-        // Endpoint for PUT requests
-        put("/weather", (var req, var res) -> {
-            System.out.println("Received a PUT request from: " + req.ip());
-
-            // Read the request body into a string
-            String body = req.body();
-
-            // Check if body is in JSON array format - respond with status 500 if not
-            try {
-                JsonElement jsonElement = JsonParser.parseString(body);
-                if (!jsonElement.isJsonArray()) {
-                    res.status(500);
-                    System.out.println(ERROR_NOT_JSON_ARRAY);
-                    return ERROR_NOT_JSON_ARRAY;
-                }
-            } catch (JsonSyntaxException e) {
-                res.status(500);
-                System.out.println(ERROR_INVALID_JSON_FORMAT);
-                return ERROR_INVALID_JSON_FORMAT;
-            } // Continue if JSON array format is valid
-
-            // Check if the file exists
-            boolean fileCreated = fileExists(WEATHER_CACHE);
-            if (!fileCreated) {
-                try {
-                    Files.createFile(Paths.get(WEATHER_CACHE)); // Create the file if it doesn't exist
-                    res.status(201);
-                } catch (IOException e) {
-                    System.err.println(ERROR_FILE_CREATION_FAILED + " " + e.getMessage());
-                    res.status(500);
-                    return ERROR_FILE_CREATION_FAILED;
-                }
-
-                JsonArray init = new JsonArray();
-                try (BufferedWriter writer = new BufferedWriter(new FileWriter(WEATHER_CACHE))) {
-                    writer.write(init.toString()); // Write an empty JSON array to the file
-                } catch (IOException e) {
-                    System.err.println(ERROR_FILE_WRITE_FAILED + " " + e.getMessage());
-                    res.status(500); // Internal server error if writing fails
-                    return ERROR_FILE_WRITE_FAILED;
-                }
-            }
-
-            // Create temp.json
-            try {
-                Files.createFile(Paths.get(TEMP_FILE));
-            } catch (IOException e) {
-                System.err.println("Error writing to file: " + e.getMessage());
-                res.status(500); // Internal server error if writing fails
-                return "{\"error\": \"Failed to write data to file.\"}";
-            }
-
-            // Load the content of WEATHER_CACHE into a string
-            String existingData = loadDataFromFile(null);
-            // Convert the string into a JSON array
-            JsonArray weatherDataCache = JsonParser.parseString(existingData).getAsJsonArray();
-            JsonArray newEntries = JsonParser.parseString(body).getAsJsonArray();
-
-            // Add new entries to the existing data, updating existing id with new data
-            for (JsonElement entry : newEntries) {
-                JsonObject entryObject = entry.getAsJsonObject();
-                String id = entryObject.get("id").getAsString();
-                boolean found = false;
-
-                // Iterate through the existing data to find the entry with the same id
-                for (JsonElement element : weatherDataCache) {
-                    JsonObject jsonObject = element.getAsJsonObject();
-                    if (jsonObject.has("id") && jsonObject.get("id").getAsString().equals(id)) {
-                        weatherDataCache.remove(element);
-                        weatherDataCache.add(entryObject);
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (!found) { // If the entry with the same id is not found, add the new entry
-                    weatherDataCache.add(entryObject);
-                }
-            }
-
-            // Sort the JSON array by id
-            weatherDataCache = sortByID(weatherDataCache);
-
-            // Try writing to temp.json
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(TEMP_FILE))) {
-                writer.write(weatherDataCache.toString());
-            } catch (IOException e) {
-                System.err.println(ERROR_FAILED_UPDATE_TEMP + " " + e.getMessage());
-                res.status(500); // Internal server error if writing fails
-                return ERROR_FILE_WRITE_FAILED;
-            }
-
-            // Write the content of temp.json to WEATHER_CACHE
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(WEATHER_CACHE))) {
-                writer.write(weatherDataCache.toString());
-            } catch (IOException e) {
-                System.err.println(ERROR_FAILED_UPDATE + " " + e.getMessage());
-                res.status(500); // Internal server error if writing fails
-                return ERROR_FAILED_UPDATE;
-            }
-
-            if (!fileCreated) {
-                res.status(201);
-                System.out.println(WEATHER_CACHE_CREATED);
-                return WEATHER_CACHE_CREATED;
-            }
-            res.status(200);
-            System.out.println(WEATHER_CACHE_UPDATED);
-            return WEATHER_CACHE_UPDATED;
-
-        });
-
-
-        // Endpoint for HEAD requests
-        head("/*", (req, res) -> {
-            res.status(400);
-            return ERROR_BAD_REQUEST;
-        });
-
-        // Endpoint for all other requests
-        notFound((req, res) -> {
-            res.status(400);
-            return ERROR_BAD_REQUEST;
-        });
     }
 
-    private static String loadDataFromFile(String station_id) {
+    // Check if a file exists
+    private synchronized static boolean fileExists(Path path) {
+        return Files.exists(path);
+    }
+
+    // Create weather.json with an empty JSON array
+    private synchronized static void createFile(Path path) {
         try {
-            String jsonData = new String(Files.readAllBytes(Paths.get(WEATHER_CACHE)));
-
-            // Validate JSON format
-            JsonElement jsonElement = JsonParser.parseString(jsonData); // Throws JsonSyntaxException if invalid JSON
-
-            // Check if it is an array
-            if (jsonElement.isJsonArray()) {
-                JsonArray jsonArray = jsonElement.getAsJsonArray();
-
-                // If station id is not provided, return whole JSON array
-                if (station_id == null) {
-                    return jsonArray.toString(); // Return the valid JSON array string
-                } else {
-                    // If no station id is found, filter the JSON array
-                    for (JsonElement element : jsonArray) {
-                        JsonObject jsonObject = element.getAsJsonObject();
-                        if (jsonObject.has("id") && jsonObject.get("id").getAsString().equals(station_id)) {
-                            return "[" + jsonObject.toString() + "]"; // Return the matching JSON object
-                        }
-                    }
-                    System.err.println("Station not found.");
-                    return null; // Return null if station ID is not found
-                }
-            } else {
-                throw new JsonSyntaxException("Expected a JSON array");
-            }
-        } catch (JsonSyntaxException e) {
-            System.err.println("Invalid JSON format: " + e.getMessage());
-            return null;
+            Files.createFile(path);
+            Files.write(path, "[]".getBytes());
+            System.out.println("File created at: " + WEATHER2.toString());
         } catch (IOException e) {
-            System.err.println("Error loading data: " + e.getMessage());
+            System.err.println("Failed to create weather.json: " + e.getMessage());
+        }
+    }
+
+    // Read data from weather.json as a JSON array without ID
+    private synchronized static JsonArray readData(Path path) {
+        try {
+            return JsonParser.parseString(new String(Files.readAllBytes(path))).getAsJsonArray();
+        } catch (IOException e) {
+            System.err.println("Failed to read weather.json: " + e.getMessage());
             return null;
         }
     }
 
-    private static boolean fileExists(String path) {
-        return Files.exists(Paths.get(path));
-    }
+    // Read data from weather.json as a JSON array WITH ID
+    private synchronized static JsonArray readID(Path path, String id) {
+        JsonObject object = null;
+        try {
+            JsonArray array = JsonParser.parseString(new String(Files.readAllBytes(path))).getAsJsonArray();
+            System.out.println("{\"Success\": \"read data from weather.json!\"}");
+            if (array.size() > 0) {
+                // Check if id exists in existing
+                for (JsonElement element : array) {
+                    object = element.getAsJsonObject();
 
-    private static JsonArray sortByID(JsonArray weatherDataCache) {
-        // Convert JsonArray to ArrayList
-        ArrayList<JsonObject> list = new ArrayList<>();
-        for (JsonElement element : weatherDataCache) {
-            list.add(element.getAsJsonObject());
+                    if (object.get("id").getAsString().equals(id)) {
+                        JsonArray returnArray = new JsonArray();
+                        returnArray.add(object);
+
+                        // Return the object
+                        return returnArray;
+                    }
+                }
+            }
+
+        } catch (IOException e) {
+            System.err.println("Failed to read data from weather.json.");
+            System.err.println("Error: " + e.getMessage());
+            return null;
         }
 
-        // Sort the ArrayList by id
-        Collections.sort(list, (JsonObject a, JsonObject b) -> {
-            String idA = a.get("id").getAsString();
-            String idB = b.get("id").getAsString();
-            return idA.compareTo(idB);
-        });
+        return null;
+    }
 
-        // Convert the sorted ArrayList back to JsonArray
-        JsonArray sortedArray = new JsonArray();
-        for (JsonObject object : list) {
-            sortedArray.add(object);
+    // Update array
+    private synchronized static JsonArray updateData(JsonArray existing, JsonObject newEntry, String id) {
+        if (existing.size() > 0) {
+            // Check if id exists in existing
+            for (JsonElement element : existing) {
+                JsonObject object = element.getAsJsonObject();
+
+                if (object.get("id").getAsString().equals(id)) {
+                    existing.remove(element);
+                }
+            }
         }
 
-        return sortedArray;
+        // Insert update
+        existing.add(newEntry);
+
+        return existing;
     }
+
+    // Write update
+    private synchronized static void writeUpdate(JsonArray newData) {
+        // Write to temp.json first
+        createFile(TEMP); // Create temp.json to write to for security in case of crash
+
+        // If temp.json successful, write newData to temp.json
+        // Try writing to temp.json
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(TEMP.toString()))) {
+            writer.write(newData.toString());
+            System.out.println("{\"Success\": \"Wrote to temp.json!\"}");
+        } catch (IOException e) {
+            System.err.println("Failed to write to temp.json D:");
+            System.err.println("Error: " + e.getMessage());
+        }
+
+        // Rename weather.json to weather_old.json
+        try {
+            Files.move(WEATHER, WEATHER2, StandardCopyOption.REPLACE_EXISTING);
+            System.out.println("{\"Success\": \"Renamed weather.json to weather2.json\"}");
+        } catch (IOException e) {
+            System.err.println("Failed to rename weather.json.");
+            System.err.println("Error: " + e.getMessage());
+        }
+
+        // Rename temp.json to weather.json
+        try {
+            Files.move(TEMP, WEATHER);
+            System.out.println("{\"Success\": \"Renamed temp.json to weather.json\"}");
+        } catch (IOException e) {
+            System.err.println("Failed to rename temp.json.");
+            System.err.println("Error: " + e.getMessage());
+        }
+
+    }
+
+    // Process the PUT queue and apply updates in Lamport clock order
+    private static synchronized void processPutQueue() {
+        // Check if the weather.json file exists, and create it if it doesn't
+        if (!fileExists(WEATHER)) {
+            createFile(WEATHER); // Create the weather.json file with an empty array
+        }
+
+        while (!putQueue.isEmpty()) {
+            // Get the PUT request with the smallest Lamport timestamp
+            LamportRequest nextPut = putQueue.poll();
+
+            if (nextPut != null) {
+                // Apply the PUT request (e.g., update the weather data file)
+                JsonArray existingData = readData(WEATHER);
+                if (existingData == null) {
+                    // If reading the existing data fails, initialize it
+                    existingData = new JsonArray();
+                }
+                JsonArray newData = updateData(existingData, nextPut.getContent(),
+                        nextPut.getContent().get("id").getAsString());
+                writeUpdate(newData);
+            }
+        }
+    }
+
 }
