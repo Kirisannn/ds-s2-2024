@@ -1,0 +1,9 @@
+id: 12345
+name: Sample Location
+local_date_time: 2024-10-07 12:00 PM
+air_temp: 25.3
+this_line_is_invalid
+state: California
+invalid_key_value: just_a_value
+lat: 34.05
+lon: -118.25
