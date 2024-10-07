@@ -9,6 +9,7 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,9 +28,9 @@ public class AggregationServer {
                                                                    // conditions
 
     // Path to the weather data file
-    private static final String WEATHER = "src/main/java/com/weatherapp/weather.json";
+    private static final String WEATHER = "src/main/resources/weather.json";
     // Path to the temp file
-    private static final String TEMP = "src/main/java/com/weatherapp/temp.json";
+    private static final String TEMP = "src/main/resources/temp.json";
     // Data store for weather data
     private static final ConcurrentHashMap<String, JsonElement> weatherData = new ConcurrentHashMap<>();
     // Data store for last connection time
@@ -69,23 +70,37 @@ public class AggregationServer {
     static void restoreData() {
         lock.lock(); // Acquire the lock to prevent concurrent access
         try {
-            if (Files.exists(Paths.get("weather.json"))) {
-                // Read the saved data from the file get as JsonArray
-                String json = new String(Files.readAllBytes(Paths.get("weather.json")));
-                JsonArray jsonArray = JsonParser.parseString(json).getAsJsonArray();
+            if (Files.exists(Paths.get(WEATHER))) {
+                // Read the saved data from the file
+                String json = new String(Files.readAllBytes(Paths.get(WEATHER)));
 
-                // Fill data store with the saved data
-                for (JsonElement obj : jsonArray) {
-                    weatherData.put(obj.getAsJsonObject().get("id").getAsString(), obj);
-                    lastConnection.put(obj.getAsJsonObject().get("id").getAsString(), System.currentTimeMillis());
+                // Check if the file is empty or contains invalid JSON
+                if (json.isEmpty()) {
+                    System.out.println("Weather file is empty. Initializing with empty data.");
+                    weatherData.clear(); // Clear any existing data
+                } else {
+                    try {
+                        // Parse the file as a JSON array
+                        JsonArray jsonArray = JsonParser.parseString(json).getAsJsonArray();
+
+                        // Fill data store with the saved data
+                        for (JsonElement obj : jsonArray) {
+                            weatherData.put(obj.getAsJsonObject().get("id").getAsString(), obj);
+                            lastConnection.put(obj.getAsJsonObject().get("id").getAsString(),
+                                    System.currentTimeMillis());
+                        }
+                    } catch (JsonSyntaxException | IllegalStateException e) {
+                        // Handle case where JSON is not an array or is malformed
+                        System.err.println("Invalid or malformed JSON file. Initializing with empty data.");
+                        weatherData.clear(); // Clear any existing data
+                    }
                 }
             } else {
                 System.out.println("No previous data found. Proceeding with a new data store.");
+                weatherData.clear(); // Ensure we start with an empty data store
             }
-        } catch (JsonSyntaxException e1) {
-            System.out.println("Error reading JSON data from file.");
-        } catch (IOException e2) {
-            System.out.println("Error reading file.");
+        } catch (IOException e) {
+            System.err.println("Error reading file: " + e.getMessage());
         } finally {
             lock.unlock(); // Release the lock
         }
@@ -194,11 +209,9 @@ public class AggregationServer {
                 if (i == 0) {
                     String[] request = headerLines[i].split(" ");
                     headerMap.put("Request-Type", request[0]);
-                    System.out.println("Request-type: " + headerMap.get("Request-Type") + " Meow");
                 } else {
                     String[] header = headerLines[i].split(": ");
                     headerMap.put(header[0], header[1]);
-                    System.out.println(header[0] + headerMap.get(header[0]) + " Meow");
                 }
             }
 
@@ -285,23 +298,26 @@ public class AggregationServer {
     }
 
     static void writeData() throws IOException {
-        // Create temp.json to write temporarily
-        Path tempFile = Paths.get(TEMP);
+        // Create a JsonArray to hold all weather data
+        JsonArray jsonArray = new JsonArray();
 
-        // Try to write the data to the temp file
-        try (BufferedWriter writer = Files.newBufferedWriter(tempFile)) {
-            for (String update : weatherData.keySet()) {
-                writer.write(weatherData.get(update).toString());
-                writer.newLine();
-            }
-
-            // Replace the original file with the temp file
-            Files.move(tempFile, Paths.get(TEMP),
-                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            System.err.println("Error writing data to file: " + e.getMessage());
-            // e.printStackTrace();
+        // Add all entries from the weatherData map to the array
+        for (String stationID : weatherData.keySet()) {
+            jsonArray.add(weatherData.get(stationID));
         }
+
+        // Write the JsonArray to the temp file
+        Path tempFile = Paths.get(TEMP);
+        try (BufferedWriter writer = Files.newBufferedWriter(tempFile)) {
+            writer.write(jsonArray.toString()); // Convert the JsonArray to a string and write to the temp file
+            writer.newLine();
+        }
+
+        System.out.println("Successfully wrote data to temp file.");
+
+        // Replace the original weather.json file with the temp file
+        Files.copy(tempFile, Paths.get(WEATHER), StandardCopyOption.REPLACE_EXISTING);
+        System.out.println("Successfully replaced weather.json with temp file.");
     }
 
     static int getClock() {

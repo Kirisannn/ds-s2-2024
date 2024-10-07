@@ -286,26 +286,42 @@ public class ContentServer {
                 try {
                     lamportClock.incrementTime();
 
-                    // Format the PUT request
-                    formatPutRequest(host, data, lamportClock.getTime(), output);
+                    // Prepare the PUT request
+                    String request = formatPutRequest(host, data, lamportClock.getTime());
 
-                    // Send the request
-                    output.flush();
+                    // Here you can log or inspect the request before sending
+                    System.out.println("Prepared Request:\n" + request);
+
+                    // Now send the request
+                    output.writeUTF(request); // Use writeUTF to send the complete request
+                    output.flush(); // Flush the output stream
 
                     // Read the response
                     String responseLine;
                     StringBuilder responseBuilder = new StringBuilder();
 
+                    // Read headers
                     while ((responseLine = input.readLine()) != null) {
                         responseBuilder.append(responseLine).append("\n");
+                        if (responseLine.isEmpty()) {
+                            break; // End of response headers
+                        }
                     }
 
+                    // Now we can process the response
                     String[] response = responseBuilder.toString().split("\n");
                     String statusLine = response[0];
                     String statusCode = statusLine.split(" ")[1];
 
                     if ("200".equals(statusCode) || "201".equals(statusCode)) {
-                        lamportClock.updateClock(Integer.parseInt(response[1]));
+                        // Extract Lamport time from headers if present
+                        for (String header : response) {
+                            if (header.startsWith("Lamport-Time: ")) {
+                                String lamportTimeStr = header.substring("Lamport-Time: ".length()).trim();
+                                lamportClock.updateClock(Integer.parseInt(lamportTimeStr));
+                                break; // We found the Lamport-Time, no need to continue
+                            }
+                        }
                         System.out.println("Data updated successfully. Server Response: " + statusLine);
                         successfulRequest = true;
                     } else {
@@ -323,11 +339,14 @@ public class ContentServer {
                                 "Failed to update data. Max retries used. Waiting 5 seconds before next attempt...");
                         sleep(5000);
                     }
+                } catch (NumberFormatException e) {
+                    System.err.println("Failed to parse number: " + e.getMessage());
+                    break; // Exit the retry loop on parsing error
                 }
             }
 
             if (running) {
-                sleep(15000); // Sleep for 15 seconds between requests
+                sleep(10000); // Sleep for 10 seconds between requests
             }
         }
 
@@ -345,15 +364,15 @@ public class ContentServer {
      * @param lamportTime The current time of the Lamport clock.
      * @return A formatted HTTP PUT request as a String.
      */
-    static void formatPutRequest(String host, String jsonString, int lamportTime, DataOutputStream output)
-            throws IOException {
-        output.writeUTF("PUT /weather.json HTTP/1.1");
-        output.writeUTF("Host: " + host);
-        output.writeUTF("Content-Type: application/json");
-        output.writeUTF("Content-Length: " + jsonString.length());
-        output.writeUTF("Lamport-Time: " + lamportTime);
-        output.writeUTF("\n");
-        output.writeUTF(jsonString);
+    static String formatPutRequest(String host, String jsonString, int lamportTime) {
+        return String.format("""
+                PUT /weather.json HTTP/1.1
+                Host: %s
+                Content-Type: application/json
+                Content-Length: %d
+                Lamport-Time: %d
+
+                %s""", host, jsonString.length(), lamportTime, jsonString);
     }
 
     /**

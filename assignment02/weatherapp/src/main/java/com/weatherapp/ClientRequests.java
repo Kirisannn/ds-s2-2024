@@ -55,14 +55,17 @@ public class ClientRequests implements Comparable<ClientRequests> {
 
         // If JSON content is valid, process the POST request
         JsonObject jsonObject = jsonElement.getAsJsonObject();
-        String stationID = jsonObject.get("stationID").getAsString();
+        String stationID = jsonObject.get("id").getAsString();
+        // System.out.println("Station ID: " + stationID);
 
         boolean isNew = AggregationServer.updateData(stationID, jsonObject);
-
+        // System.out.println("Data updated: " + isNew);
         // Send response to the client
         if (isNew) {
+            // System.out.println("Sending response 201");
             sendResponse(201, "Successfully updated data for station " + stationID);
         } else {
+            // System.out.println("Sending response 200");
             sendResponse(200, "Successfully updated data for station " + stationID);
         }
     }
@@ -93,8 +96,8 @@ public class ClientRequests implements Comparable<ClientRequests> {
     // Send response to the client
     public void sendResponse(int statusCode, String message) throws IOException {
         DataOutputStream out = new DataOutputStream(clientSocket.getOutputStream());
-        String httpResponse = "HTTP/1.1 " + statusCode + " Lamport Clock: " + AggregationServer.getClock() + message
-                + "\r\n\r\n";
+        String httpResponse = "HTTP/1.1 " + statusCode + "\nLamport-Time: " + AggregationServer.getClock()
+                + "\n\n" + message + "\r\n\r\n";
         out.writeUTF(httpResponse);
         out.flush();
     }
