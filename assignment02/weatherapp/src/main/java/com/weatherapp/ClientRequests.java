@@ -3,7 +3,6 @@ package com.weatherapp;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.lang.Override;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;

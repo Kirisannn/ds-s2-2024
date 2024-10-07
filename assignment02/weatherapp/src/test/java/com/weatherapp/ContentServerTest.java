@@ -1,16 +1,10 @@
 package com.weatherapp;
 
-import java.io.DataOutputStream;
-import java.io.IOException;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -52,8 +46,8 @@ public class ContentServerTest {
      * 
      * This test checks the validateFilePath method to confirm that it
      * correctly recognizes a valid file path in the resources directory.
-     * Ensure that the specified file exists in the resources directory
-     * for the test to pass.
+     * It assumes that the specified file exists in the resources directory
+     * for the test to pass successfully.
      */
     @Test
     public void testValidateFilePath_ValidPath() {
@@ -64,7 +58,9 @@ public class ContentServerTest {
      * Tests the validateFilePath method with an invalid file path.
      * 
      * This test checks the validateFilePath method to ensure that it
-     * correctly identifies a non-existent file path as invalid.
+     * correctly identifies a non-existent file path as invalid. This helps
+     * verify the method's ability to handle file paths that do not correspond
+     * to actual files.
      */
     @Test
     public void testValidateFilePath_InvalidPath() {
@@ -76,7 +72,8 @@ public class ContentServerTest {
      * 
      * This test verifies that the readData method successfully reads
      * a valid JSON file and correctly populates the resulting JSON
-     * object. It checks for the presence of key fields in the output.
+     * object. It checks for the presence of expected key fields in the output,
+     * ensuring that the data is formatted correctly.
      */
     @Test
     public void testReadData_ValidJSON() {
@@ -91,7 +88,8 @@ public class ContentServerTest {
      * Tests the readData method with an empty file.
      * 
      * This test checks that the readData method returns an appropriate
-     * error message when attempting to read from an empty file.
+     * error message when attempting to read from an empty file. This
+     * ensures that the method can gracefully handle the case of missing data.
      */
     @Test
     public void testReadData_EmptyFile() {
@@ -105,7 +103,7 @@ public class ContentServerTest {
      * 
      * This test ensures that the readData method returns an error message
      * when it encounters a line that does not conform to the expected key-value
-     * format.
+     * format. It validates the method's robustness against malformed input.
      */
     @Test
     public void testReadData_InvalidLineFormat() {
@@ -116,57 +114,31 @@ public class ContentServerTest {
     /**
      * Tests the formatPutRequest method.
      * 
-     * This test verifies that the formatPutRequest method generates a
-     * correctly formatted HTTP PUT request string based on the provided
-     * parameters, including the host, request body, and Lamport time.
+     * This test verifies that the formatPutRequest method generates the
+     * expected formatted PUT request string when provided with valid
+     * input parameters, including the host, JSON string, and Lamport time.
      */
     @Test
-    void testFormatPutRequest() throws IOException {
-        // Arrange
-        String host = "localhost";
-        String jsonString = "{\"temperature\":25,\"humidity\":60}";
+    public void testFormatPutRequest() {
+        // Given
+        String host = "localhost:4567";
+        String jsonString = "{\"id\":\"123\",\"temperature\":25.5,\"humidity\":60}";
         int lamportTime = 5;
-        DataOutputStream mockOutput = mock(DataOutputStream.class);
 
-        // Act
-        ContentServer.formatPutRequest(host, jsonString, lamportTime, mockOutput);
+        // When
+        String result = ContentServer.formatPutRequest(host, jsonString, lamportTime);
 
-        // Assert - Verify the exact sequence of calls to writeUTF with expected content
-        verify(mockOutput).writeUTF("PUT /weather.json HTTP/1.1");
-        verify(mockOutput).writeUTF("Host: " + host);
-        verify(mockOutput).writeUTF("Content-Type: application/json");
-        verify(mockOutput).writeUTF("Content-Length: " + jsonString.length());
-        verify(mockOutput).writeUTF("Lamport-Time: " + lamportTime);
-        verify(mockOutput).writeUTF("\n"); // The blank line after headers
-        verify(mockOutput).writeUTF(jsonString); // The JSON body
+        // Expected output
+        String expected = """
+                PUT /weather.json HTTP/1.1
+                Host: localhost:4567
+                Content-Type: application/json
+                Content-Length: 54
+                Lamport-Time: 5
 
-        // Optionally: verify no other interactions have happened
-        verifyNoMoreInteractions(mockOutput);
+                {"id":"123","temperature":25.5,"humidity":60}""";
+
+        // Then
+        assertEquals(expected, result); // Assert that the result matches the expected output
     }
-
-    // @Test
-    // public void testSendPutRequest_RetryOnFailure() throws Exception {
-    //     // Mock the BufferedReader and DataOutputStream
-    //     BufferedReader mockInput = mock(BufferedReader.class);
-    //     DataOutputStream mockOutput = mock(DataOutputStream.class);
-
-    //     // Simulate a failed response from the server (first four times)
-    //     when(mockInput.readLine())
-    //             .thenReturn("HTTP/1.1 500 Internal Server Error")
-    //             .thenReturn("HTTP/1.1 500 Internal Server Error")
-    //             .thenReturn("HTTP/1.1 500 Internal Server Error")
-    //             .thenReturn("HTTP/1.1 500 Internal Server Error")
-    //             .thenReturn("HTTP/1.1 200 OK"); // Simulate a successful response on the last attempt
-
-    //     // Create a ContentServer instance (if necessary) and call the method
-    //     String host = "localhost";
-    //     String path = "IDS60901.txt";
-
-    //     ContentServer.sendPutRequest(mockInput, mockOutput, host, path);
-
-    //     // Verify that the method was called with expected behavior
-    //     verify(mockOutput, times(5)).writeUTF(anyString()); // Verify that it tried to send the request 5 times
-    //     verify(mockOutput, times(5)).flush(); // Verify that flush was called each time
-    //     verify(mockInput, times(5)).readLine(); // Ensure readLine was called 5 times
-    // }
 }

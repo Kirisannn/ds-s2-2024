@@ -10,27 +10,15 @@ import java.net.Socket;
 
 import com.google.gson.Gson;
 
-/**
- * The ContentServer class is responsible for reading weather data from a file
- * and sending it to the AggregationServer via HTTP PUT requests. It accepts
- * two command-line arguments: the server URL and the weather data file path.
- */
 public class ContentServer {
     // Lamport clock for timestamping requests
     private static final LamportClock lamportClock = new LamportClock();
     private static volatile boolean running = true; // Flag to control the main loop
 
-    /**
-     * The main method serves as the entry point for the ContentServer. It verifies
-     * if the required arguments (server URL and file path) are provided, then
-     * checks if the URL and file path are valid before proceeding with the
-     * operations.
-     *
-     * @param args Command-line arguments where:
-     *             args[0] is the server URL (e.g., "http://servername:portnumber")
-     *             args[1] is the file path to the weather data (txt file only)
-     */
     public static void main(String[] args) throws IOException, InterruptedException, ConnectException {
+        // Main entry point for the ContentServer application.
+        // It initializes the server connection and begins sending weather data.
+
         if (args.length != 2) {
             System.err.println("Usage: java ContentServer <serverURL> <filePath>");
             System.exit(1);
@@ -82,14 +70,10 @@ public class ContentServer {
     }
 
     /**
-     * Validates if the provided URL is in the correct format.
-     * 
-     * This method checks if the server URL follows one of the valid formats:
-     * "http://servername.domain.domain:portnumber", "http://servername:portnumber",
-     * or "servername:portnumber" (with implicit protocol information).
+     * Validates the format of the provided URL.
      *
-     * @param url The server URL to be validated.
-     * @return true if the URL format is valid, false otherwise.
+     * @param url The URL to validate.
+     * @return True if the URL is valid; otherwise, false.
      */
     static boolean validateURL(String url) {
         // If the URL does not start with http:// or https://,
@@ -129,15 +113,11 @@ public class ContentServer {
     }
 
     /**
-     * Validates if the provided file path is correct and points to an existing
+     * Validates the specified file path to ensure it points to an existing .txt
      * file.
-     * 
-     * This method checks if the file path is valid and if the file exists on the
-     * local system. The method will return true if the file is found and can be
-     * read.
      *
-     * @param filePath The file path to the weather data.
-     * @return true if the file exists and is valid, false otherwise.
+     * @param filePath The file path to validate.
+     * @return True if the file exists and is a .txt file; otherwise, false.
      */
     static boolean validateFilePath(String filePath) {
         if (!filePath.endsWith(".txt")) { // Check if the file is a text file
@@ -150,25 +130,12 @@ public class ContentServer {
     }
 
     /**
-     * Reads the weather data from the file and returns it as a JSON object.
-     * 
-     * This method reads the weather data from the provided file path and converts
-     * it into a JSON object. The JSON object will be used to send the data to the
-     * AggregationServer.
-     * 
-     * If the file contains non-JSON format, the method will return a JSON object
-     * with an appropriate error message in the format:
-     * {
-     * "error": "Data not JSON."
-     * }
-     * 
-     * or if the file is empty:
-     * {
-     * "error": "File is empty."
-     * }
+     * Reads weather data from the specified file and converts it into a JSON
+     * string.
      *
-     * @param filePath The file path to the weather data.
-     * @return A JSON object containing the weather data or an error message.
+     * @param filePath The path to the weather data file.
+     * @return A JSON string representation of the weather data, or an error message
+     *         in JSON format if an error occurs.
      */
     static String readData(String filePath) {
         WeatherData weatherData = new WeatherData();
@@ -211,17 +178,12 @@ public class ContentServer {
     }
 
     /**
-     * Processes a line from the file and updates the WeatherData object
-     * accordingly.
+     * Processes a line of weather data and updates the corresponding fields in the
+     * WeatherData object.
      *
-     * This method splits a line into a key-value pair and updates the provided
-     * WeatherData object based on the key. If the key is unexpected or in an
-     * invalid format, an IllegalArgumentException will be thrown.
-     *
-     * @param line        The line to be processed.
+     * @param line        The line of text containing weather data in "key: value"
+     *                    format.
      * @param weatherData The WeatherData object to update.
-     * @throws IllegalArgumentException if the line format is invalid or the key is
-     *                                  unknown.
      */
     private static void processLine(String line, WeatherData weatherData) {
         // Split the line into key and value
@@ -261,18 +223,12 @@ public class ContentServer {
     }
 
     /**
-     * Sends an HTTP PUT request to the AggregationServer with the weather data.
-     * 
-     * This method reads the weather data, establishes a connection to the server,
-     * and attempts to send the PUT request. It handles retries in case of
-     * connection
-     * failures and processes the server's response to ensure the data is
-     * successfully updated.
+     * Sends a PUT request to the server with the weather data read from the file.
      *
      * @param input  The BufferedReader for reading the server's response.
-     * @param output The DataOutputStream for sending the PUT request to the server.
-     * @param host   The host of the AggregationServer.
-     * @param path   The path to the weather data file.
+     * @param output The DataOutputStream for sending data to the server.
+     * @param host   The host of the server.
+     * @param path   The file path to the weather data.
      */
     static void sendPutRequest(BufferedReader input, DataOutputStream output, String host, String path) {
         String data = readData(path); // Read the weather data from the file
@@ -354,15 +310,12 @@ public class ContentServer {
     }
 
     /**
-     * Formats an HTTP PUT request with the given host and JSON data.
+     * Formats a PUT request string to be sent to the server.
      *
-     * This method constructs a valid HTTP PUT request string using the provided
-     * host, JSON data, and Lamport timestamp.
-     *
-     * @param host        The host to which the request is sent.
-     * @param jsonString  The JSON data to be sent in the body of the request.
-     * @param lamportTime The current time of the Lamport clock.
-     * @return A formatted HTTP PUT request as a String.
+     * @param host        The host of the server.
+     * @param jsonString  The JSON string containing the weather data.
+     * @param lamportTime The Lamport time to include in the headers.
+     * @return A formatted PUT request string.
      */
     static String formatPutRequest(String host, String jsonString, int lamportTime) {
         return String.format("""
@@ -376,9 +329,9 @@ public class ContentServer {
     }
 
     /**
-     * Sleep for the specified duration.
-     * 
-     * @param milliseconds Duration in milliseconds.
+     * Sleeps the current thread for a specified amount of time.
+     *
+     * @param milliseconds The time to sleep in milliseconds.
      */
     static void sleep(long milliseconds) {
         try {
@@ -387,5 +340,4 @@ public class ContentServer {
             Thread.currentThread().interrupt(); // Restore interrupted status
         }
     }
-
 }
