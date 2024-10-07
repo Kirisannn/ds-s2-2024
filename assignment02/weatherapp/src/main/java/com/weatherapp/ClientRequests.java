@@ -3,24 +3,30 @@ package com.weatherapp;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.lang.Override;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-public class ClientRequests {
+public class ClientRequests implements Comparable<ClientRequests> {
     private final Socket clientSocket; // Socket for the client
     private final String requestType; // GET or POST
     private final String requestHeaders;
     private final String requestContent; // JSON formatted string
     private final int requestClock; // Lamport clock for timestamping
 
-    public ClientRequests(Socket socket, String type, String headers, String content, int timestamp) {
+    ClientRequests(Socket socket, String type, String headers, String content, int timestamp) {
         clientSocket = socket;
         requestType = type;
         requestHeaders = headers;
         requestContent = content;
         requestClock = timestamp;
+    }
+
+    @Override
+    public int compareTo(ClientRequests other) {
+        return Integer.compare(this.requestClock, other.requestClock); // Ascending order based on Lamport time
     }
 
     public void process() throws IOException {
@@ -85,7 +91,7 @@ public class ClientRequests {
     }
 
     // Send response to the client
-    private void sendResponse(int statusCode, String message) throws IOException {
+    public void sendResponse(int statusCode, String message) throws IOException {
         DataOutputStream out = new DataOutputStream(clientSocket.getOutputStream());
         String httpResponse = "HTTP/1.1 " + statusCode + " Lamport Clock: " + AggregationServer.getClock() + message
                 + "\r\n\r\n";

@@ -287,10 +287,9 @@ public class ContentServer {
                     lamportClock.incrementTime();
 
                     // Format the PUT request
-                    String request = formatPutRequest(host, data, lamportClock.getTime());
+                    formatPutRequest(host, data, lamportClock.getTime(), output);
 
                     // Send the request
-                    output.writeUTF(request);
                     output.flush();
 
                     // Read the response
@@ -346,15 +345,15 @@ public class ContentServer {
      * @param lamportTime The current time of the Lamport clock.
      * @return A formatted HTTP PUT request as a String.
      */
-    static String formatPutRequest(String host, String jsonString, int lamportTime) {
-        return String.format("""
-                PUT /weather.json HTTP/1.1\r
-                Host: %s\r
-                Content-Type: application/json\r
-                Content-Length: %d\r
-                Lamport-Time: %d\r
-                \r
-                %s""", host, jsonString.length(), lamportTime, jsonString);
+    static void formatPutRequest(String host, String jsonString, int lamportTime, DataOutputStream output)
+            throws IOException {
+        output.writeUTF("PUT /weather.json HTTP/1.1");
+        output.writeUTF("Host: " + host);
+        output.writeUTF("Content-Type: application/json");
+        output.writeUTF("Content-Length: " + jsonString.length());
+        output.writeUTF("Lamport-Time: " + lamportTime);
+        output.writeUTF("\n");
+        output.writeUTF(jsonString);
     }
 
     /**

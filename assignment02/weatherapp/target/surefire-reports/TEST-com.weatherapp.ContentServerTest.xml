@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuite tests="8" failures="0" name="com.weatherapp.ContentServerTest" time="0.051" errors="0" skipped="0">
+<testsuite tests="7" failures="0" name="com.weatherapp.ContentServerTest" time="0.124" errors="0" skipped="0">
   <properties>
     <property name="jansi.mode" value="force"/>
     <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
@@ -43,7 +43,7 @@
     <property name="java.class.path" value="/usr/share/maven/boot/plexus-classworlds-2.x.jar"/>
     <property name="java.vm.specification.version" value="22"/>
     <property name="sun.arch.data.model" value="64"/>
-    <property name="sun.java.command" value="org.codehaus.plexus.classworlds.launcher.Launcher test"/>
+    <property name="sun.java.command" value="org.codehaus.plexus.classworlds.launcher.Launcher clean install"/>
     <property name="java.home" value="/usr/lib/jvm/jdk-22.0.2"/>
     <property name="user.language" value="en"/>
     <property name="java.specification.vendor" value="Oracle Corporation"/>
@@ -58,12 +58,11 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="sun.cpu.endian" value="little"/>
   </properties>
-  <testcase classname="com.weatherapp.ContentServerTest" name="com.weatherapp.ContentServerTest.testValidateURL_InvalidURL" time="0.003"/>
-  <testcase classname="com.weatherapp.ContentServerTest" name="com.weatherapp.ContentServerTest.testValidateFilePath_ValidPath" time="0.002"/>
-  <testcase classname="com.weatherapp.ContentServerTest" name="com.weatherapp.ContentServerTest.testValidateURL_ValidURL" time="0"/>
-  <testcase classname="com.weatherapp.ContentServerTest" name="com.weatherapp.ContentServerTest.testValidateFilePath_InvalidPath" time="0"/>
-  <testcase classname="com.weatherapp.ContentServerTest" name="com.weatherapp.ContentServerTest.testReadData_ValidJSON" time="0.036"/>
-  <testcase classname="com.weatherapp.ContentServerTest" name="com.weatherapp.ContentServerTest.testReadData_EmptyFile" time="0.001"/>
-  <testcase classname="com.weatherapp.ContentServerTest" name="com.weatherapp.ContentServerTest.testReadData_InvalidLineFormat" time="0.003"/>
-  <testcase classname="com.weatherapp.ContentServerTest" name="com.weatherapp.ContentServerTest.testFormatPutRequest" time="0.006"/>
+  <testcase classname="com.weatherapp.ContentServerTest" name="com.weatherapp.ContentServerTest.testValidateURL_ValidURL" time="0.007"/>
+  <testcase classname="com.weatherapp.ContentServerTest" name="com.weatherapp.ContentServerTest.testValidateURL_InvalidURL" time="0"/>
+  <testcase classname="com.weatherapp.ContentServerTest" name="com.weatherapp.ContentServerTest.testValidateFilePath_ValidPath" time="0.004"/>
+  <testcase classname="com.weatherapp.ContentServerTest" name="com.weatherapp.ContentServerTest.testValidateFilePath_InvalidPath" time="0.001"/>
+  <testcase classname="com.weatherapp.ContentServerTest" name="com.weatherapp.ContentServerTest.testReadData_ValidJSON" time="0.101"/>
+  <testcase classname="com.weatherapp.ContentServerTest" name="com.weatherapp.ContentServerTest.testReadData_EmptyFile" time="0.004"/>
+  <testcase classname="com.weatherapp.ContentServerTest" name="com.weatherapp.ContentServerTest.testReadData_InvalidLineFormat" time="0.007"/>
 </testsuite>

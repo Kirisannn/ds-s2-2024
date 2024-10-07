@@ -9,7 +9,6 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -141,14 +140,16 @@ public class AggregationServer {
     // Creates ServerSocket and listens for incoming connections
     static void startServer(int port) {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
-            System.out.println("===================================\n"
-                    + "Server started on port: " + port);
+            System.out.println("""
+                    ===================================
+                    Server started on port: """ + port);
 
             // Listen for incoming connections
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                System.out.println("-----------------------------------\n"
-                        + "Connection established with client: " + clientSocket.getRemoteSocketAddress());
+                System.out.println("""
+                        -----------------------------------
+                        Connection established with client: """ + clientSocket.getRemoteSocketAddress());
 
                 // Create a new thread to handle the client connection
                 Thread clientThread = new Thread(() -> connectionHandler(clientSocket));
@@ -171,49 +172,52 @@ public class AggregationServer {
 
             DataInputStream in = new DataInputStream(clientSocket.getInputStream());
             DataOutputStream out = new DataOutputStream(clientSocket.getOutputStream());
-            int clientLamportTime = 0;
 
             StringBuilder headers = new StringBuilder();
             String line;
 
             // Read headers
-            // System.out.println("Reading headers from client: " + clientSocket.getRemoteSocketAddress());
-            Map<String, String> headerMap = new HashMap<>();
+            int clientTime = 0;
             while (!(line = in.readUTF()).isEmpty()) {
-                System.out.println(line);
-                headers.append(line).append("\r\n");
-                // Split the header into key and value
-                String[] headerParts = line.split(": ", 2);
-                if (headerParts.length == 2) {
-                    headerMap.put(headerParts[0], headerParts[1]);
+                headers.append(line).append("\n");
+                if (line.contains("Lamport-Time")) {
+                    clientTime = Integer.parseInt(line.split(": ")[1]);
+                    break;
+                }
+            }
+            System.out.println("Headers: " + headers);
+
+            // Parse the headers
+            String[] headerLines = headers.toString().split("\n");
+            Map<String, String> headerMap = new ConcurrentHashMap<>();
+            for (int i = 0; i < headerLines.length; i++) {
+                if (i == 0) {
+                    String[] request = headerLines[i].split(" ");
+                    headerMap.put("Request-Type", request[0]);
+                    System.out.println("Request-type: " + headerMap.get("Request-Type") + " Meow");
+                } else {
+                    String[] header = headerLines[i].split(": ");
+                    headerMap.put(header[0], header[1]);
+                    System.out.println(header[0] + headerMap.get(header[0]) + " Meow");
                 }
             }
 
-            // Extract headers from the client request
-            System.out.println("Request headers: " + headers.toString());
-            String clientLamportStr = headerMap.get("Lamport-Time");
-            if (clientLamportStr != null) {
-                clientLamportTime = Integer.parseInt(clientLamportStr);
-                System.out.println("Client Lamport time: " + clientLamportTime);
-            } else {
-                System.out.println("No Lamport-Time header found.");
+            // Read the JSON data after headers
+            StringBuilder requestBody = new StringBuilder();
+            while (in.available() > 0) {
+                requestBody.append(in.readUTF()).append("\n");
             }
 
             // Check if PUT or GET request
             String requestType = headerMap.get("Request-Type");
-            String requestBody = "";
-            if (!"PUT".equals(requestType) || !"GET".equals(requestType)) {
-                // Invalid request type
-                System.out.println("""
-                        Invalid request type. Please use PUT or GET.
-                        Closing connection with client: """ + clientSocket.getRemoteSocketAddress());
-            } else if ("PUT".equals(requestType)) {
+            System.out.println("Request type: " + requestType);
+            if (requestType.equals("PUT")) {
+                requestType = "PUT";
                 // Validate the PUT request body if JSON
-                requestBody = in.readUTF();
                 if (!(requestBody.isEmpty())) { // If request is not empty
                     try {
                         @SuppressWarnings("unused")
-                        JsonElement jsonElement = JsonParser.parseString(requestBody);
+                        JsonElement jsonElement = JsonParser.parseString(requestBody.toString());
                     } catch (JsonSyntaxException e) {
                         System.out.println("Invalid JSON format in PUT request.");
                         out.writeUTF("Invalid JSON format in PUT request.");
@@ -221,16 +225,23 @@ public class AggregationServer {
                         return;
                     }
                 }
+            } else if (requestType.equals("GET")) {
+                requestType = "GET";
+            } else if (!requestType.equals("PUT") && !requestType.equals("GET")) {
+                // Invalid request type
+                System.out.println("""
+                        Invalid request type. Please use PUT or GET.
+                        Closing connection with client: """ + clientSocket.getRemoteSocketAddress());
             }
 
             // Sync the Lamport time
             synchronized (AggregationServer.class) {
-                lamportClock.updateClock(clientLamportTime);
+                lamportClock.updateClock(clientTime);
             }
 
             // Add request to queue
-            ClientRequests request = new ClientRequests(clientSocket, requestType, headers.toString(), requestBody,
-                    clientLamportTime);
+            ClientRequests request = new ClientRequests(clientSocket, requestType,
+                    headers.toString(), requestBody.toString(), clientTime);
             synchronized (requests) {
                 requests.add(request);
 

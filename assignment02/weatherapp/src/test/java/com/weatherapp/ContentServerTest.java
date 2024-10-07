@@ -1,10 +1,16 @@
 package com.weatherapp;
 
+import java.io.DataOutputStream;
+import java.io.IOException;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -115,17 +121,27 @@ public class ContentServerTest {
      * parameters, including the host, request body, and Lamport time.
      */
     @Test
-    public void testFormatPutRequest() {
-        String request = ContentServer.formatPutRequest("localhost", "{\"key\":\"value\"}", 1);
-        String expected = """
-                PUT /weather.json HTTP/1.1\r
-                Host: localhost\r
-                Content-Type: application/json\r
-                Content-Length: 15\r
-                Lamport-Time: 1\r
-                \r
-                {"key":"value"}""";
-        assertEquals(expected, request);
+    void testFormatPutRequest() throws IOException {
+        // Arrange
+        String host = "localhost";
+        String jsonString = "{\"temperature\":25,\"humidity\":60}";
+        int lamportTime = 5;
+        DataOutputStream mockOutput = mock(DataOutputStream.class);
+
+        // Act
+        ContentServer.formatPutRequest(host, jsonString, lamportTime, mockOutput);
+
+        // Assert - Verify the exact sequence of calls to writeUTF with expected content
+        verify(mockOutput).writeUTF("PUT /weather.json HTTP/1.1");
+        verify(mockOutput).writeUTF("Host: " + host);
+        verify(mockOutput).writeUTF("Content-Type: application/json");
+        verify(mockOutput).writeUTF("Content-Length: " + jsonString.length());
+        verify(mockOutput).writeUTF("Lamport-Time: " + lamportTime);
+        verify(mockOutput).writeUTF("\n"); // The blank line after headers
+        verify(mockOutput).writeUTF(jsonString); // The JSON body
+
+        // Optionally: verify no other interactions have happened
+        verifyNoMoreInteractions(mockOutput);
     }
 
     // @Test

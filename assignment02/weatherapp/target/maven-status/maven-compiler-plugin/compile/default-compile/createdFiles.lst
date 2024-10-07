@@ -1,0 +1,6 @@
+com/weatherapp/ClientRequests.class
+com/weatherapp/LamportClock.class
+com/weatherapp/ContentServer.class
+com/weatherapp/GETClient.class
+com/weatherapp/AggregationServer.class
+com/weatherapp/WeatherData.class
