@@ -1,25 +1,19 @@
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.io.*;
+import java.net.*;
 // import java.io.ObjectInputStream;
 // import java.util.*;
 
 // import com.google.gson.JsonElement;
-// import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.JsonArray;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.FileWriter;
+import com.google.gson.JsonObject;
 
 public class AggregationServer {
-    private static final int DEFAULT_PORT = 4567;
+    static final int DEFAULT_PORT = 4567;
     private static ServerSocket server_socket = null;
     private static JsonArray weatherData;
+    static LamportClock clock = new LamportClock();
 
     public static void main(String[] args) {
         // Read arguments
@@ -57,40 +51,19 @@ public class AggregationServer {
             }
         }));
 
+        // Load weather data
+        loadWeatherData();
+
         // Listening for incoming connections
         while (true) {
             try {
                 Socket client_socket = server_socket.accept();
-                String client_ip = client_socket.getInetAddress().toString();
-                String client_port = Integer.toString(client_socket.getPort());
-                System.out.println("""
-                        ---------------------------------------------------------------------------
-                        Client connected: """ + client_ip + ":" + client_port + "\n");
 
-                // Respond to client
-                OutputStream output = client_socket.getOutputStream();
-                PrintWriter writer = new PrintWriter(output, true);
-                String server_ip = client_socket.getLocalAddress().getHostAddress(); // Get server's IP address
-                writer.println("Connected to server at " + server_ip + ":" + port + "\n"); // Send the formatted message
+                // Create a new thread for the client
+                Thread clientThread = new Thread(() -> handleClient(client_socket));
 
-                // Handler for client
-
-
-                // Handler for content provider
-
-
-
-
-
-
-                // Close the connection with the client
-                try {
-                    client_socket.close();
-                    System.out.println("Client " + client_ip + ":" + client_port + " disconnected.");
-                } catch (IOException e) {
-                    System.err.println("Error closing client connection:\n" + e
-                            + "---------------------------------------------------------------------------");
-                }
+                // Start the thread
+                clientThread.start();
             } catch (IOException e) {
                 System.err.println("Error accepting connection:\n" + e);
                 break;
@@ -99,7 +72,7 @@ public class AggregationServer {
     }
 
     private static void loadWeatherData() {
-        File file = new File("runtimeFiles/weather.json");
+        File file = new File("src/runtimeFiles/weather.json");
 
         if (file.exists()) {
             try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
@@ -128,4 +101,63 @@ public class AggregationServer {
         }
     }
 
+    private static void handleClient(Socket client_socket) {
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(client_socket.getInputStream()));
+                PrintWriter out = new PrintWriter(client_socket.getOutputStream(), true)) {
+            // Read the request
+            String requestLine = in.readLine();
+            System.out.println("---------------------------------------------------------------------------");
+            System.out.println("Request received: " + requestLine);
+
+            // Parse the request
+            if (requestLine == null) {
+                System.err.println("Invalid request received. Ignoring...");
+                return;
+            }
+
+            // Check request type
+            if (requestLine.startsWith("GET")) {
+                // Handle GET request
+                handleGetRequest(out);
+            } else if (requestLine.startsWith("PUT")) {
+                // Handle POST request
+                handlePutRequest(in, out);
+            } else {
+                // Handle unsupported request
+                handleUnsupportedRequests(out);
+            }
+        } catch (IOException e) {
+            System.err.println("Error handling client request:\n" + e);
+        }
+    }
+
+    private static void sendResponse(PrintWriter out, int statusCode, String responseBody, String statusMessage) {
+        String statusLine = "HTTP/1.1 " + statusCode + " " + statusMessage + "\r\n";
+        String headers = "Content-Type: application/json\n" +
+                "Content-Length: " + responseBody.length() + "\n" +
+                "Connection: close\n" +
+                "Lamport-Time: " + clock.getTime() + "\n\n";
+
+        out.print(statusLine + headers + responseBody);
+        out.flush();
+    }
+
+    private static void handleUnsupportedRequests(PrintWriter out) {
+        String responseBody = "[{\"Error\": \"Unsupported request method. Only GET and PUT requests are supported.\"}]";
+        sendResponse(out, 400, responseBody, "Bad Request");
+
+        System.err.println("Unsupported request type. Only GET and PUT requests are supported.");
+        System.out.println("---------------------------------------------------------------------------\n");
+
+    }
+
+    private static void handlePutRequest(BufferedReader in, PrintWriter out) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'handlePostRequest'");
+    }
+
+    private static void handleGetRequest(PrintWriter out) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'handleGetRequest'");
+    }
 }
