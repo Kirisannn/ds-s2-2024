@@ -63,23 +63,36 @@ public class AggregationServer {
                 Socket client_socket = server_socket.accept();
                 String client_ip = client_socket.getInetAddress().toString();
                 String client_port = Integer.toString(client_socket.getPort());
-                System.out.println("Client connected: " + client_ip + ":" + client_port);
+                System.out.println("""
+                        ---------------------------------------------------------------------------
+                        Client connected: """ + client_ip + ":" + client_port + "\n");
 
                 // Respond to client
                 OutputStream output = client_socket.getOutputStream();
                 PrintWriter writer = new PrintWriter(output, true);
                 String server_ip = client_socket.getLocalAddress().getHostAddress(); // Get server's IP address
-                writer.println("Connected to server at " + server_ip + ":" + port); // Send the formatted message
+                writer.println("Connected to server at " + server_ip + ":" + port + "\n"); // Send the formatted message
+
+                // Handler for client
+
+
+                // Handler for content provider
+
+
+
+
+
 
                 // Close the connection with the client
                 try {
                     client_socket.close();
                     System.out.println("Client " + client_ip + ":" + client_port + " disconnected.");
                 } catch (IOException e) {
-                    System.err.println("Error closing client connection:\n" + e);
+                    System.err.println("Error closing client connection:\n" + e
+                            + "---------------------------------------------------------------------------");
                 }
             } catch (IOException e) {
-                System.err.println("Error accepting client connection:\n" + e);
+                System.err.println("Error accepting connection:\n" + e);
                 break;
             }
         }
