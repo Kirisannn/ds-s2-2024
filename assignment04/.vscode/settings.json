@@ -1,0 +1,11 @@
+{
+    "java.project.sourcePaths": [
+        "src"
+    ],
+    "java.project.outputPath": "bin",
+    "java.project.referencedLibraries": [
+        // "lib/**/*.jar"
+        "lib/gson-2.11.0.jar"
+    ],
+    "java.jdt.ls.java.home": "/home/kirisan/anaconda3/envs/ds-assignment02/lib/jvm"
+}
