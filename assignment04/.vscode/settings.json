@@ -1,11 +1,24 @@
 {
+    // "java.project.sourcePaths": [
+    //     "src"
+    // ],
+    // "java.project.outputPath": "bin",
+    // "java.project.referencedLibraries": [
+    //     // "lib/**/*.jar"
+    //     "lib/gson-2.11.0.jar"
+    // ],
+    // "java.jdt.ls.java.home": "/home/kirisan/anaconda3/envs/ds-assignment02/lib/jvm".
+    "java.classPath": [
+        "lib/some-dependency.jar"
+    ],
     "java.project.sourcePaths": [
+        "lib",
         "src"
     ],
-    "java.project.outputPath": "bin",
     "java.project.referencedLibraries": [
-        // "lib/**/*.jar"
-        "lib/gson-2.11.0.jar"
+        "/home/kirisan/Documents/ds-s2-2024/assignment04/lib/spark-core-2.9.4.jar",
+        "/home/kirisan/Documents/ds-s2-2024/assignment04/lib/slf4j-simple-2.0.16.jar",
+        "/home/kirisan/Documents/ds-s2-2024/assignment04/lib/slf4j-api-2.0.16.jar",
+        "/home/kirisan/Documents/ds-s2-2024/assignment04/lib/gson-2.11.0.jar"
     ],
-    "java.jdt.ls.java.home": "/home/kirisan/anaconda3/envs/ds-assignment02/lib/jvm"
 }

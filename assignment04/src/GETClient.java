@@ -75,6 +75,7 @@ public class GETClient {
 
             // Split the server response into headers and body
             String[] responseParts = serverResponse.split("\n\n");
+            @SuppressWarnings("unused")
             String headers = responseParts[0];
             String body = responseParts[1];
 
