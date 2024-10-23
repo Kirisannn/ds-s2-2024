@@ -21,9 +21,14 @@ public class LamportClock {
         time++;
     }
 
+    public void send() {
+        increment();
+    }
+
+
     // Update the time to the maximum of the current time and the received time then
     // increment by 1
-    public void receiveAction(int srcTime) {
+    public void receive(int srcTime) {
         time = Math.max(time, srcTime);
         increment();
     }

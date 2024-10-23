@@ -21,7 +21,7 @@
             "mainClass": "GETClient",
             "args": [
                 "localhost:8080",
-                "IDS60901"
+                // "IDS60901"
             ],
             "projectName": "assignment04_de626574"
         }

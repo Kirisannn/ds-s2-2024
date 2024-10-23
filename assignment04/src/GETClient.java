@@ -35,8 +35,9 @@ public class GETClient {
         }
 
         // If stationID provided
+        String stationID = "";
         if (args.length > 1) {
-            String stationID = args[1];
+            stationID = args[1];
             System.out.print("""
                     ---------------------------------------------------------------------------
                     Updating Station: """ + stationID + ", ");
@@ -51,7 +52,8 @@ public class GETClient {
             PrintWriter writer = new PrintWriter(output, true);
 
             // Send the formatted GET request message to the server
-            writer.print(sendUnsupported());
+            // writer.print(sendUnsupported());
+            writer.print(sendGET(stationID));
             writer.flush();
 
             // Read server response
@@ -75,9 +77,32 @@ public class GETClient {
 
             // Split the server response into headers and body
             String[] responseParts = serverResponse.split("\n\n");
-            @SuppressWarnings("unused")
-            String headers = responseParts[0];
             String body = responseParts[1];
+
+            // Extract first line as it is the status line
+            String[] headerParts = responseParts[0].split("\n");
+            String response = headerParts[0];
+            System.out.println("Response: " + response); // Uncomment for debugging
+
+            // Extract Lamport-Time from the headers
+            JsonArray headers = new JsonArray();
+            String headerLine;
+            for (int i = 1; i < headerParts.length; i++) {
+                headerLine = headerParts[i];
+                String[] headerPartsArr = headerLine.split(": ");
+                JsonObject header = new JsonObject();
+                header.addProperty(headerPartsArr[0], headerPartsArr[1]);
+                headers.add(header);
+            }
+
+            // Get lamport time from headers
+            for (JsonElement header : headers) {
+                JsonObject headerObj = header.getAsJsonObject();
+                if (headerObj.has("Lamport-Time")) {
+                    int srcTime = headerObj.get("Lamport-Time").getAsInt();
+                    clock.receive(srcTime);
+                }
+            }
 
             // Process the server response as JsonArray
             JsonArray dataArray = new JsonArray();
@@ -111,24 +136,25 @@ public class GETClient {
         return host_port_arr;
     }
 
-    static String sendGET() {
-        return """
-                GET /weather.json HTTP/1.1
-                User-Agent: ATOMClient/1/0
-                Accept: application/json
-                Lamport-Time: XX
+    static String sendGET(String id) {
+        String requestLine = "GET /weather.json HTTP/1.1\n";
+        clock.increment();
+        String headers = "User-Agent: ATOMClient/1/0\n" +
+                "Accept: application/json" + "\n" +
+                "id: " + id + "\n" +
+                "Lamport-Time: " + clock.getTime() + "\n\n";
 
-                """;
+        return requestLine + headers;
     }
 
     static String sendUnsupported() {
-        return """
-                POST /weather.json HTTP/1.1
-                User-Agent: ATOMClient/1/0
-                Accept: application/json
-                Lamport-Time: XX
+        String requestLine = "POST /weather.json HTTP/1.1\n";
+        clock.increment();
+        String headers = "User-Agent: ATOMClient/1/0\n" +
+                "Accept: application/json" + "\n" +
+                "Lamport-Time: " + clock.getTime() + "\n\n";
 
-                """;
+        return requestLine + headers;
     }
 
     static void printArray(JsonArray dataArray) {
@@ -139,6 +165,7 @@ public class GETClient {
             for (String key : obj.keySet()) {
                 sb.append(key).append(": ").append(obj.get(key)).append("\n");
             }
+            sb.append("\n");
         }
 
         String out = sb.toString();
