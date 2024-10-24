@@ -8,9 +8,8 @@ import com.google.gson.*;
 
 public class AggregationServer {
     static final int DEFAULT_PORT = 4567;
-    private static ServerSocket server_socket = null;
-    @SuppressWarnings("unused")
-    private static JsonArray weatherData;
+    static ServerSocket server_socket = null;
+    static JsonArray weatherData;
     static LamportClock clock = new LamportClock();
 
     public static void main(String[] args) {

@@ -24,6 +24,17 @@
                 // "IDS60901"
             ],
             "projectName": "assignment04_de626574"
+        },
+        {
+            "type": "java",
+            "name": "ContentServer",
+            "request": "launch",
+            "mainClass": "ContentServer",
+            "args": [
+                "localhost:8080",
+                "src/runtimeFiles/testingNonJsonFormat.txt"
+            ],
+            "projectName": "assignment04_de626574"
         }
     ]
 }

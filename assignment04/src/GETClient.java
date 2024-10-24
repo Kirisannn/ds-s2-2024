@@ -6,11 +6,12 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+
 public class GETClient {
     static final LamportClock clock = new LamportClock();
 
     public static void main(String[] args) {
-        // Read argunts
+        // Read arguments
         int port = 0;
         String host = null;
         if (args.length > 0) {
@@ -40,92 +41,111 @@ public class GETClient {
             stationID = args[1];
             System.out.print("""
                     ---------------------------------------------------------------------------
-                    Updating Station: """ + stationID + ", ");
+                    Getting Station: """ + stationID + ", ");
+        } else {
+            System.out.print("""
+                    ---------------------------------------------------------------------------
+                    Getting Station: All Stations, """);
         }
         System.out.println("Connecting to { " + host + ":" + port + " }");
 
-        // Create client socket
-        try (Socket client_socket = new Socket(host, port)) {
-            System.out.println("Successfully connected to server: { " + host + ":" + port + " }\n");
+        // Retry logic
+        int maxRetries = 5;
+        int attempts = 0;
+        boolean connected = false;
 
-            OutputStream output = client_socket.getOutputStream();
-            PrintWriter writer = new PrintWriter(output, true);
+        while (attempts < maxRetries && !connected) {
+            try (Socket client_socket = new Socket(host, port)) {
+                connected = true;
+                System.out.println("Successfully connected to server: { " + host + ":" + port + " }\n");
 
-            // Send the formatted GET request message to the server
-            // writer.print(sendUnsupported());
-            writer.print(sendGET(stationID));
-            writer.flush();
+                OutputStream output = client_socket.getOutputStream();
+                PrintWriter writer = new PrintWriter(output, true);
 
-            // Read server response
-            InputStream input = client_socket.getInputStream();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+                // Send the formatted GET request message to the server
+                writer.print(sendGET(stationID));
+                writer.flush();
 
-            // Read server response
-            StringBuilder responseBuilder = new StringBuilder();
-            String line;
+                // Read server response
+                InputStream input = client_socket.getInputStream();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(input));
 
-            // Read the response until the end
-            while ((line = reader.readLine()) != null) {
-                responseBuilder.append(line).append("\n");
+                // Read server response
+                StringBuilder responseBuilder = new StringBuilder();
+                String line;
+
+                // Read the response until the end
+                while ((line = reader.readLine()) != null) {
+                    responseBuilder.append(line).append("\n");
+                }
+
+                // Receive message from server
+                String serverResponse = responseBuilder.toString().trim();
+
+                // Split the server response into headers and body
+                String[] responseParts = serverResponse.split("\n\n");
+                String body = responseParts[1];
+
+                // Extract first line as it is the status line
+                String[] headerParts = responseParts[0].split("\n");
+                String response = headerParts[0];
+                System.out.println("Response: " + response);
+
+                // Extract Lamport-Time from the headers
+                JsonArray headers = new JsonArray();
+                String headerLine;
+                for (int i = 1; i < headerParts.length; i++) {
+                    headerLine = headerParts[i];
+                    String[] headerPartsArr = headerLine.split(": ");
+                    JsonObject header = new JsonObject();
+                    header.addProperty(headerPartsArr[0], headerPartsArr[1]);
+                    headers.add(header);
+                }
+
+                // Get lamport time from headers
+                for (JsonElement header : headers) {
+                    JsonObject headerObj = header.getAsJsonObject();
+                    if (headerObj.has("Lamport-Time")) {
+                        int srcTime = headerObj.get("Lamport-Time").getAsInt();
+                        clock.receive(srcTime);
+                    }
+                }
+
+                // Process the server response as JsonArray
+                JsonArray dataArray = new JsonArray();
+                try {
+                    dataArray = JsonParser.parseString(body).getAsJsonArray();
+                    printArray(dataArray);
+                } catch (JsonSyntaxException e) {
+                    System.err.println("Syntax error when parsing server response as JSON Array\n" + e);
+                    System.exit(1);
+                } catch (Exception e) {
+                    System.err.println("Unknown error when parsing server response as JSON Array\n" + e);
+                    System.exit(1);
+                }
+
+            } catch (UnknownHostException e) {
+                System.err.println("Could not connect to server: " + host + ":" + port + ". Unknown host\n" + e);
+            } catch (IOException e) {
+                System.err.println("Could not connect to server: " + host + ":" + port + ".\n" + e);
+            } catch (Exception e) {
+                System.err.println("Could not connect to server. Unknown error\n" + e);
             }
 
-            // Receive message from server
-            String serverResponse = responseBuilder.toString().trim();
-            // System.out.println("Server Response:\n" + serverResponse); // Uncomment for
-            // debugging
-            // System.out.println(serverResponse); // Uncomment for debugging
-
-            // Split the server response into headers and body
-            String[] responseParts = serverResponse.split("\n\n");
-            String body = responseParts[1];
-
-            // Extract first line as it is the status line
-            String[] headerParts = responseParts[0].split("\n");
-            String response = headerParts[0];
-            System.out.println("Response: " + response); // Uncomment for debugging
-
-            // Extract Lamport-Time from the headers
-            JsonArray headers = new JsonArray();
-            String headerLine;
-            for (int i = 1; i < headerParts.length; i++) {
-                headerLine = headerParts[i];
-                String[] headerPartsArr = headerLine.split(": ");
-                JsonObject header = new JsonObject();
-                header.addProperty(headerPartsArr[0], headerPartsArr[1]);
-                headers.add(header);
-            }
-
-            // Get lamport time from headers
-            for (JsonElement header : headers) {
-                JsonObject headerObj = header.getAsJsonObject();
-                if (headerObj.has("Lamport-Time")) {
-                    int srcTime = headerObj.get("Lamport-Time").getAsInt();
-                    clock.receive(srcTime);
+            if (!connected) {
+                attempts++;
+                if (attempts < maxRetries) {
+                    System.out.println("Retrying connection... (" + attempts + "/" + maxRetries + ")\n");
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                    }
+                } else {
+                    System.err.println("Failed to connect after " + maxRetries + " attempts.\n");
+                    System.exit(1);
                 }
             }
-
-            // Process the server response as JsonArray
-            JsonArray dataArray = new JsonArray();
-            try {
-                dataArray = JsonParser.parseString(body).getAsJsonArray();
-                printArray(dataArray);
-            } catch (JsonSyntaxException e) {
-                System.err.println("Syntax error when parsing server response as JSON Array\n" + e);
-                System.exit(1);
-            } catch (Exception e) {
-                System.err.println("Unknown error when parsing server response as JSON Array\n" + e);
-                System.exit(1);
-            }
-
-        } catch (UnknownHostException e) {
-            System.err.println("Could not connect to server: " + host + ":" + port + ". Unknown host\n" + e);
-            System.exit(1);
-        } catch (IOException e) {
-            System.err.println("Could not connect to server: " + host + ":" + port + ".\n" + e);
-            System.exit(1);
-        } catch (Exception e) {
-            System.err.println("Could not connect to server. Unknown error\n" + e);
-            System.exit(1);
         }
 
         System.out.println("---------------------------------------------------------------------------");
@@ -170,6 +190,6 @@ public class GETClient {
 
         String out = sb.toString();
 
-        System.err.println(out);
+        System.out.println(out);
     }
 }
