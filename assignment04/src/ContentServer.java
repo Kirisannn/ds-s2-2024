@@ -9,137 +9,109 @@ public class ContentServer {
     static JsonArray weatherData;
     static int port;
     static String host;
+    static Socket socket;
+    static int client_port;
 
     public static void main(String[] args) {
-        // Check args
+        // Parse host and port from arguments
         if (args.length > 0) {
-            // If host_port doesn't start with "http://"
-            if (!args[0].startsWith("http://")) {
-                // Get the host and port from the host_port
-                String[] host_port = getHostPort(args[0]);
-                host = host_port[0];
-                port = Integer.parseInt(host_port[1]);
-            } else {
-                // Get the host and port from the host_port
-                String[] host_port = getHostPort(args[0].substring(7));
-                // Host from index 6 to the end
-                host = host_port[0];
-                port = Integer.parseInt(host_port[1]);
-            }
-
-            // Check if port is in range
-            if (port < 0 || port > 65535) {
-                System.err.println("Invalid port number (Out of range 0-65535)");
-                System.exit(1);
-            }
+            String[] host_port = getHostPort(args[0]);
+            host = host_port[0];
+            port = Integer.parseInt(host_port[1]);
         }
 
-        // Print host and port
-        // System.out.println("Host: " + host); // Comment out
-        // System.out.println("Port: " + port); // Comment out
+        // Bind to a randomly selected available port only once, outside the loop
+        try (ServerSocket serverSocket = new ServerSocket(0)) {
+            client_port = serverSocket.getLocalPort(); // Assign a random available port
+            System.out.println("Selected client port for binding: " + client_port);
 
-        String filepath = null;
-        // While loop to keep sending data to AggregationServer every 30seconds
-        Boolean connected = true;
-        while (connected) {
-            connected = false;
-            if (args.length > 1) {
-                // Check if file path is provided
-                filepath = args[1];
-                System.out.println("File path: " + filepath);
-                // Read content from file
-                try {
-                    weatherData = readContent(filepath);
-                } catch (Exception e) {
-                    System.err.println("Error reading file: " + filepath);
-                    System.exit(1);
-                }
-            } else {
-                System.err.println("File path not provided. Please provide a file path.");
+            // Close the server socket after getting the port
+            serverSocket.close();
+        } catch (IOException e) {
+            System.err.println("Could not find an available port to bind: " + e);
+            System.exit(1);
+        }
+
+        String filepath = args.length > 1 ? args[1] : null;
+        if (filepath == null) {
+            System.err.println("File path not provided. Please provide a file path.");
+            System.exit(1);
+        }
+
+        // Main loop to continuously send data to the server
+        while (true) {
+            // Load file content into weatherData
+            try {
+                weatherData = readContent(filepath);
+            } catch (Exception e) {
+                System.err.println("Error reading file: " + filepath);
                 System.exit(1);
             }
 
-            // Create socket connection to AggregationServer while not more than 5 retries.
+            boolean success = false;
             int retries = 0;
-            Boolean success = false; // Indicates if successful update/creation of weather data on Aggregator
+
             while (!success && retries < 5) {
-                // Create socket connection to AggregationServer
-                try (Socket socket = new Socket(host, port)) {
-                    connected = true;
-                    // Create input and output streams
+                try {
+                    // Create and bind socket once per retry attempt
+                    socket = new Socket();
+                    socket.bind(new InetSocketAddress("localhost", client_port));
+                    socket.connect(new InetSocketAddress(host, port));
+
                     PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
-
                     String[] message = preparePut();
-
                     System.out.println("Sending:\n" + message[0] + "\n" + message[1]);
 
                     // Send weather data to AggregationServer
                     writer.print(message[0]);
                     writer.print("\n");
                     writer.print(message[1]);
-
                     writer.flush();
 
                     // Read server response
-                    InputStream input = socket.getInputStream();
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-
-                    // Read server response
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     StringBuilder responseBuilder = new StringBuilder();
                     String line;
                     while ((line = reader.readLine()) != null) {
                         responseBuilder.append(line).append("\n");
                     }
-
-                    // Receive message from server
                     String serverResponse = responseBuilder.toString().trim();
-
-                    // Split the server response into headers and body
                     String[] responseParts = serverResponse.split("\n\n");
 
-                    // Receive response from AggregationServer
                     success = printResponse(responseParts);
-                    if (success) {
-                        break;
-                    }
-                } catch (UnknownHostException e) {
-                    System.err.println("Unknown host: " + host + "\n" + e);
-                    System.exit(1);
-                } catch (ConnectException e) {
-                    System.err.println("Connection refused. Please check if server is running on address (" +
-                            host + ":" + port + ")\n" + e);
+
                 } catch (IOException e) {
-                    System.err.println("Server IO error: " + host + "\n" + e);
-                } catch (Exception e) {
-                    System.err.println("Unknown Error: " + e);
-                    System.exit(1);
+                    System.err.println("Connection error: " + e.getMessage());
                 } finally {
                     retries++;
+                    try {
+                        socket.close();
+                    } catch (IOException e) {
+                        System.err.println("Error closing socket: " + e);
+                    }
                 }
 
-                // Sleep for 5 seconds before retrying
-                try {
-                    Thread.sleep(3000);
-                } catch (InterruptedException e) {
-                    System.err.println("Error sleeping thread: " + e);
-                    System.exit(1);
-                } finally {
-                    System.out.println("Retrying connection to server...");
+                // Retry delay
+                if (!success && retries < 5) {
+                    try {
+                        System.out.println("Retrying connection...");
+                        Thread.sleep(3000);
+                    } catch (InterruptedException e) {
+                        System.err.println("Interrupted during retry delay: " + e);
+                    }
                 }
             }
 
-            // If retries are more than 5, print error message
-            if (retries >= 5) {
-                System.err.println("Failed to connect to server after 5 retries. Please check server status.");
+            if (!success) {
+                System.err.println("Failed to connect after 5 retries. Exiting.");
                 System.exit(1);
             }
 
-            // Sleep for 30 seconds before sending data again
+            // Wait before next send
             try {
-                Thread.sleep(30000);
+                Thread.sleep(30000); // 30 seconds
             } catch (InterruptedException e) {
-                System.err.println("Error sleeping thread: " + e);
-                System.exit(1);
+                System.err.println("Main loop interrupted: " + e);
             }
         }
     }

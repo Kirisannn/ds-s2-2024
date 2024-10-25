@@ -3,15 +3,18 @@ compile:
 
 run-get:
 	echo
-	java -cp "bin:lib/gson-2.11.0.jar" GETClient http://localhost:8080 IDS60901
+	java -cp "bin:lib/gson-2.11.0.jar" GETClient http://localhost:4567 IDS60901
 
 run-aggregation:
 	echo
-	java -cp "bin:lib/gson-2.11.0.jar" AggregationServer 8080
+	java -cp "bin:lib/gson-2.11.0.jar" AggregationServer
 
 run-content:
 	echo
-	java -cp "bin:lib/gson-2.11.0.jar" ContentServer 8080
+	java -cp "bin:lib/gson-2.11.0.jar" ContentServer 4567
 
 connection-test:
 	telnet localhost 8080
+
+simulate-crash:
+	kill -9 -f java

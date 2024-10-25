@@ -1,7 +1,6 @@
 import java.io.*;
 import java.net.*;
-// import java.io.ObjectInputStream;
-// import java.util.*;
+import java.util.*;
 
 // import com.google.gson.JsonElement;
 import com.google.gson.*;
@@ -11,6 +10,9 @@ public class AggregationServer {
     static ServerSocket server_socket = null;
     static JsonArray weatherData;
     static LamportClock clock = new LamportClock();
+    static Socket client_socket;
+    // Priority queue to store client_socket and its lamport time
+    static Map<Socket, Integer> clientLamportTime = new HashMap<>();
 
     public static void main(String[] args) {
         // Read arguments
@@ -27,7 +29,8 @@ public class AggregationServer {
         // Create server socket
         try {
             server_socket = new ServerSocket(port);
-            System.out.println("Starting Server...\nListening on port " + port + "...");
+            System.out.println("Starting Server on {" + server_socket.getInetAddress().getHostAddress() + ":" + port
+                    + "}...\nServer listening...\n");
         } catch (IOException e) {
             System.err.println("Could not listen on port: " + port + ".\n" + e);
         } catch (Exception e) {
@@ -70,14 +73,21 @@ public class AggregationServer {
         // Listening for incoming connections
         while (true) {
             try {
-                Socket client_socket = server_socket.accept();
+                client_socket = server_socket.accept();
+
+                // Connection from client
+                System.out.println("===========================================================================");
+                System.out.println("Connection {" + client_socket.getInetAddress().getHostAddress() + ":"
+                        + client_socket.getPort() + "} accepted");
 
                 // Create a new thread for the client
                 new Thread(() -> handleClient(client_socket)).start();
+
             } catch (IOException e) {
                 System.err.println("Error accepting connection:\n" + e);
                 break;
             }
+
         }
     }
 
@@ -173,9 +183,16 @@ public class AggregationServer {
             System.err.println("Error handling client request:\n" + e);
         }
 
-        // Print client connection closed client host and port
-        System.out.println("Connection {" + client_socket.getInetAddress().getHostAddress() + ":"
-                + client_socket.getLocalPort() + "} closed");
+        // Close the client socket
+        try {
+            client_socket.close();
+        } catch (IOException e) {
+            System.err.println("IO error closing client socket:\n" + e);
+        } catch (Exception e) {
+            System.err.println("Unknown error closing client socket:\n" + e);
+        }
+
+        System.out.println("Updated weather successfully.");
         System.out.println("---------------------------------------------------------------------------\n");
     }
 
@@ -366,7 +383,9 @@ public class AggregationServer {
             }
         }
 
-        // Now to get required data
+        // Assign the lamport time to the current thread
+        int lamportTime = clock.getTime();
+        clientLamportTime.put(client_socket, lamportTime);
 
         // If id not provided, search weather data for entry with id
         if (!id.equals("")) {

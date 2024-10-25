@@ -31,7 +31,7 @@
             "request": "launch",
             "mainClass": "ContentServer",
             "args": [
-                "localhost:8080",
+                "localhost:4567",
                 "src/runtimeFiles/IDS60901.txt"
             ],
             "projectName": "assignment04_de626574"
