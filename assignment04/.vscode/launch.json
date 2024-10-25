@@ -9,9 +9,7 @@
             "name": "AggregationServer",
             "request": "launch",
             "mainClass": "AggregationServer",
-            "args": [
-                "8080"
-            ],
+            "args": [],
             "projectName": "assignment04_de626574"
         },
         {
@@ -20,7 +18,7 @@
             "request": "launch",
             "mainClass": "GETClient",
             "args": [
-                "localhost:8080",
+                "localhost:4567",
                 // "IDS60901"
             ],
             "projectName": "assignment04_de626574"

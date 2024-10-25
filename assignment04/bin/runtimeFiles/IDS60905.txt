@@ -1,0 +1,17 @@
+id:IDS60905
+name:Perth (Mount Lawley)
+state: WA
+time_zone:AWST
+lat:-31.93
+lon:115.86
+local_date_time:15/04:00pm
+local_date_time_full:20230715160000
+air_temp:19.8
+apparent_t:18.1
+cloud:Mostly clear
+dewpt:10.2
+press:1021.8
+rel_hum:50
+wind_dir:SW
+wind_spd_kmh:17
+wind_spd_kt:9

@@ -20,6 +20,21 @@ public class ContentServer {
             port = Integer.parseInt(host_port[1]);
         }
 
+        // Shutdown hook to close socket
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                if (socket != null) {
+                    socket.close();
+                }
+            } catch (IOException e) {
+                System.err.println("Error closing socket: " + e);
+            } catch (Exception e) {
+                System.err.println("Unknown error closing socket: " + e);
+            } finally {
+                System.out.println("Socket closed.");
+            }
+        }));
+
         // Bind to a randomly selected available port only once, outside the loop
         try (ServerSocket serverSocket = new ServerSocket(0)) {
             client_port = serverSocket.getLocalPort(); // Assign a random available port

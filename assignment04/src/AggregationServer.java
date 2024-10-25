@@ -1,6 +1,8 @@
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.AbstractMap.SimpleEntry;
+import java.util.concurrent.PriorityBlockingQueue;
 
 // import com.google.gson.JsonElement;
 import com.google.gson.*;
@@ -11,7 +13,17 @@ public class AggregationServer {
     static JsonArray weatherData;
     static LamportClock clock = new LamportClock();
     static Socket client_socket;
+
     // Priority queue to store client_socket and its lamport time pair
+    static final PriorityBlockingQueue<SimpleEntry<JsonArray, Integer>> requestQueue = new PriorityBlockingQueue<>(10,
+            new Comparator<SimpleEntry<JsonArray, Integer>>() {
+                @Override
+                public int compare(SimpleEntry<JsonArray, Integer> o1, SimpleEntry<JsonArray, Integer> o2) {
+                    // Compare based on Lamport time
+                    return o1.getValue().compareTo(o2.getValue());
+                }
+            });
+    private static final Object dataLock = new Object(); // Lock for synchronizing access to weatherData
     
     
     public static void main(String[] args) {
@@ -295,21 +307,59 @@ public class AggregationServer {
         // Get body as JsonArray
         JsonArray body = headersBody[1];
 
-        // Update weather data
-        Boolean success = updateData(body);
+        SimpleEntry<JsonArray, Integer> request = new SimpleEntry<>(body, clock.getTime());
+        requestQueue.add(request);
 
-        String resBody;
-        if (success) {
-            resBody = "[{\"Success\": \"Weather data updated successfully.\"}]";
-        } else {
-            resBody = "[{\"Error\": \"Failed to update weather data.\"}]";
+        // Attempt to process queue
+        try {
+            processQueue(out);
+        } catch (Exception e) {
+            System.err.println("Unknown error processing request queue:\n" + e);
         }
-
-        // Send response
-        sendResponse(out, 200, resBody, "OK");
     }
 
-    static Boolean updateData(JsonArray newData) {
+    private static void processQueue(PrintWriter out) {
+        // While there are requests in the queue
+        while (true) {
+            try {
+                // Take the next request from the queue
+                SimpleEntry<JsonArray, Integer> request = requestQueue.take(); // This will block until an element is
+                                                                               // available
+                JsonArray body = request.getKey();
+                // Integer lamportTime = request.getValue();
+
+                // Process the request
+                Boolean success;
+                synchronized (dataLock) { // Synchronize only on shared resource
+                    success = updateData(body);
+                }
+
+                // Log the success status
+                String resBody;
+                if (success) {
+                    resBody = "[{\"Success\": \"Weather data updated successfully.\"}]";
+                } else {
+                    resBody = "[{\"Error\": \"Failed to update weather data.\"}]";
+                }
+
+                // Send response
+                sendResponse(out, 200, resBody, "OK");
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt(); // Restore interrupted status
+                System.err.println("Processing thread interrupted:\n" + e);
+                break; // Exit if interrupted
+            } catch (Exception e) {
+                System.err.println("Error processing request from queue:\n" + e);
+            }
+
+            // If there are no more requests in the queue, break
+            if (requestQueue.isEmpty()) {
+                break;
+            }
+        }
+    }
+
+    static synchronized Boolean updateData(JsonArray newData) {
         try {
             for (JsonElement newEntry : newData) {
                 JsonObject curr = newEntry.getAsJsonObject();
@@ -382,10 +432,6 @@ public class AggregationServer {
                 id = headerObj.get("id").getAsString();
             }
         }
-
-        // Assign the lamport time to the current thread
-        int lamportTime = clock.getTime();
-        clientLamportTime.put(client_socket, lamportTime);
 
         // If id not provided, search weather data for entry with id
         if (!id.equals("")) {

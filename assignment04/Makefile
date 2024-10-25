@@ -11,7 +11,7 @@ run-aggregation:
 
 run-content:
 	echo
-	java -cp "bin:lib/gson-2.11.0.jar" ContentServer 4567
+	java -cp "bin:lib/gson-2.11.0.jar" ContentServer localhost:4567 src/runtimeFiles/IDS60901.txt
 
 connection-test:
 	telnet localhost 8080
