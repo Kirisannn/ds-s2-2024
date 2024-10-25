@@ -39,94 +39,108 @@ public class ContentServer {
         // System.out.println("Port: " + port); // Comment out
 
         String filepath = null;
-        if (args.length > 1) {
-            // Check if file path is provided
-            filepath = args[1];
-            System.out.println("File path: " + filepath);
-            // Read content from file
-            try {
-                weatherData = readContent(filepath);
-            } catch (Exception e) {
-                System.err.println("Error reading file: " + filepath);
+        // While loop to keep sending data to AggregationServer every 30seconds
+        Boolean connected = true;
+        while (connected) {
+            connected = false;
+            if (args.length > 1) {
+                // Check if file path is provided
+                filepath = args[1];
+                System.out.println("File path: " + filepath);
+                // Read content from file
+                try {
+                    weatherData = readContent(filepath);
+                } catch (Exception e) {
+                    System.err.println("Error reading file: " + filepath);
+                    System.exit(1);
+                }
+            } else {
+                System.err.println("File path not provided. Please provide a file path.");
                 System.exit(1);
             }
-        } else {
-            System.err.println("File path not provided. Please provide a file path.");
-            System.exit(1);
-        }
 
-        // Create socket connection to AggregationServer while not more than 5 retries.
-        int retries = 0;
-        Boolean success = false; // Indicates if successful update/creation of weather data on Aggregator
-        while (!success && retries < 5) {
-            // Create socket connection to AggregationServer
-            try (Socket socket = new Socket(host, port)) {
-                // Create input and output streams
-                PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+            // Create socket connection to AggregationServer while not more than 5 retries.
+            int retries = 0;
+            Boolean success = false; // Indicates if successful update/creation of weather data on Aggregator
+            while (!success && retries < 5) {
+                // Create socket connection to AggregationServer
+                try (Socket socket = new Socket(host, port)) {
+                    connected = true;
+                    // Create input and output streams
+                    PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
 
-                String[] message = preparePut();
+                    String[] message = preparePut();
 
-                System.out.println("Sending:\n" + message[0] + "\n" + message[1]);
+                    System.out.println("Sending:\n" + message[0] + "\n" + message[1]);
 
-                // Send weather data to AggregationServer
-                writer.print(message[0]);
-                writer.print("\n");
-                writer.print(message[1]);
+                    // Send weather data to AggregationServer
+                    writer.print(message[0]);
+                    writer.print("\n");
+                    writer.print(message[1]);
 
-                writer.flush();
+                    writer.flush();
 
-                // Read server response
-                InputStream input = socket.getInputStream();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+                    // Read server response
+                    InputStream input = socket.getInputStream();
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(input));
 
-                // Read server response
-                StringBuilder responseBuilder = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    responseBuilder.append(line).append("\n");
+                    // Read server response
+                    StringBuilder responseBuilder = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        responseBuilder.append(line).append("\n");
+                    }
+
+                    // Receive message from server
+                    String serverResponse = responseBuilder.toString().trim();
+
+                    // Split the server response into headers and body
+                    String[] responseParts = serverResponse.split("\n\n");
+
+                    // Receive response from AggregationServer
+                    success = printResponse(responseParts);
+                    if (success) {
+                        break;
+                    }
+                } catch (UnknownHostException e) {
+                    System.err.println("Unknown host: " + host + "\n" + e);
+                    System.exit(1);
+                } catch (ConnectException e) {
+                    System.err.println("Connection refused. Please check if server is running on address (" +
+                            host + ":" + port + ")\n" + e);
+                } catch (IOException e) {
+                    System.err.println("Server IO error: " + host + "\n" + e);
+                } catch (Exception e) {
+                    System.err.println("Unknown Error: " + e);
+                    System.exit(1);
+                } finally {
+                    retries++;
                 }
 
-                // Receive message from server
-                String serverResponse = responseBuilder.toString().trim();
-
-                // Split the server response into headers and body
-                String[] responseParts = serverResponse.split("\n\n");
-
-                // Receive response from AggregationServer
-                success = printResponse(responseParts);
-                if (success) {
-                    break;
+                // Sleep for 5 seconds before retrying
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    System.err.println("Error sleeping thread: " + e);
+                    System.exit(1);
+                } finally {
+                    System.out.println("Retrying connection to server...");
                 }
-            } catch (UnknownHostException e) {
-                System.err.println("Unknown host: " + host + "\n" + e);
-                System.exit(1);
-            } catch (ConnectException e) {
-                System.err.println("Connection refused. Please check if server is running on address (" +
-                        host + ":" + port + ")\n" + e);
-            } catch (IOException e) {
-                System.err.println("Server IO error: " + host + "\n" + e);
-            } catch (Exception e) {
-                System.err.println("Unknown Error: " + e);
-                System.exit(1);
-            } finally {
-                retries++;
             }
 
-            // Sleep for 5 seconds before retrying
+            // If retries are more than 5, print error message
+            if (retries >= 5) {
+                System.err.println("Failed to connect to server after 5 retries. Please check server status.");
+                System.exit(1);
+            }
+
+            // Sleep for 30 seconds before sending data again
             try {
-                Thread.sleep(3000);
+                Thread.sleep(30000);
             } catch (InterruptedException e) {
                 System.err.println("Error sleeping thread: " + e);
                 System.exit(1);
-            } finally {
-                System.out.println("Retrying connection to server...");
             }
-        }
-
-        // If retries are more than 5, print error message
-        if (retries >= 5) {
-            System.err.println("Failed to connect to server after 5 retries. Please check server status.");
-            System.exit(1);
         }
     }
 
