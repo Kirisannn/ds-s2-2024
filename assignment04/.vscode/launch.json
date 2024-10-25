@@ -32,7 +32,7 @@
             "mainClass": "ContentServer",
             "args": [
                 "localhost:8080",
-                "src/runtimeFiles/testingNonJsonFormat.txt"
+                "src/runtimeFiles/IDS60901.txt"
             ],
             "projectName": "assignment04_de626574"
         }

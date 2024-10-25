@@ -1,6 +1,5 @@
 import java.io.*;
 import java.net.*;
-import java.util.*;
 import java.nio.file.*;
 
 import com.google.gson.*;
@@ -8,11 +7,11 @@ import com.google.gson.*;
 public class ContentServer {
     static final LamportClock clock = new LamportClock();
     static JsonArray weatherData;
+    static int port;
+    static String host;
 
     public static void main(String[] args) {
-        // Read arguments
-        int port = 0;
-        String host = null;
+        // Check args
         if (args.length > 0) {
             // If host_port doesn't start with "http://"
             if (!args[0].startsWith("http://")) {
@@ -39,18 +38,142 @@ public class ContentServer {
         // System.out.println("Host: " + host); // Comment out
         // System.out.println("Port: " + port); // Comment out
 
+        String filepath = null;
         if (args.length > 1) {
             // Check if file path is provided
-            String filepath = args[1];
+            filepath = args[1];
             System.out.println("File path: " + filepath);
+            // Read content from file
             try {
                 weatherData = readContent(filepath);
             } catch (Exception e) {
                 System.err.println("Error reading file: " + filepath);
                 System.exit(1);
             }
+        } else {
+            System.err.println("File path not provided. Please provide a file path.");
+            System.exit(1);
         }
 
+        // Create socket connection to AggregationServer while not more than 5 retries.
+        int retries = 0;
+        Boolean success = false; // Indicates if successful update/creation of weather data on Aggregator
+        while (!success && retries < 5) {
+            // Create socket connection to AggregationServer
+            try (Socket socket = new Socket(host, port)) {
+                // Create input and output streams
+                PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+
+                String[] message = preparePut();
+
+                System.out.println("Sending:\n" + message[0] + "\n" + message[1]);
+
+                // Send weather data to AggregationServer
+                writer.print(message[0]);
+                writer.print("\n");
+                writer.print(message[1]);
+
+                writer.flush();
+
+                // Read server response
+                InputStream input = socket.getInputStream();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+
+                // Read server response
+                StringBuilder responseBuilder = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    responseBuilder.append(line).append("\n");
+                }
+
+                // Receive message from server
+                String serverResponse = responseBuilder.toString().trim();
+
+                // Split the server response into headers and body
+                String[] responseParts = serverResponse.split("\n\n");
+
+                // Receive response from AggregationServer
+                success = printResponse(responseParts);
+                if (success) {
+                    break;
+                }
+            } catch (UnknownHostException e) {
+                System.err.println("Unknown host: " + host + "\n" + e);
+                System.exit(1);
+            } catch (ConnectException e) {
+                System.err.println("Connection refused. Please check if server is running on address (" +
+                        host + ":" + port + ")\n" + e);
+            } catch (IOException e) {
+                System.err.println("Server IO error: " + host + "\n" + e);
+            } catch (Exception e) {
+                System.err.println("Unknown Error: " + e);
+                System.exit(1);
+            } finally {
+                retries++;
+            }
+
+            // Sleep for 5 seconds before retrying
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                System.err.println("Error sleeping thread: " + e);
+                System.exit(1);
+            } finally {
+                System.out.println("Retrying connection to server...");
+            }
+        }
+
+        // If retries are more than 5, print error message
+        if (retries >= 5) {
+            System.err.println("Failed to connect to server after 5 retries. Please check server status.");
+            System.exit(1);
+        }
+    }
+
+    private static String[] preparePut() {
+        // Format headers
+        clock.increment(); // Increment Lamport clock as sending message
+
+        String headers = "PUT /weather.json HTTP/1.1\n" +
+                "Content-Type: application/json\n" +
+                "Content-Length: " + weatherData.toString().getBytes().length + "\n" +
+                "Lamport-Time: " + clock.getTime() + "\n";
+
+        String[] message = { headers, weatherData.toString() };
+
+        return message;
+    }
+
+    private static Boolean printResponse(String[] responseParts) {
+        try {
+            // Extract headers
+            String headers = responseParts[0];
+            System.out.println("\nServer Response:\n" + headers);
+            String[] headerParts = responseParts[0].split("\n");
+            // Get Lamport-Time from headers
+            int receivedTime = Integer.parseInt(headerParts[4].split(": ")[1]);
+            clock.receive(receivedTime);
+            String body = responseParts[1];
+            JsonArray dataArray = new JsonArray();
+            try {
+                dataArray = JsonParser.parseString(body).getAsJsonArray();
+                printArray(dataArray);
+            } catch (JsonSyntaxException e) {
+                System.err.println("Syntax error when parsing server response as JSON Array\n" + e);
+                System.exit(1);
+            } catch (Exception e) {
+                System.err.println("Unknown error when parsing server response as JSON Array\n" + e);
+                System.exit(1);
+            }
+
+            System.out.println("---------------------------------------------------------------------------");
+            return true;
+        } catch (Exception e) {
+            System.err.println("Unknown error parsing server response: " + e);
+            System.exit(1);
+        }
+
+        return false;
     }
 
     static String[] getHostPort(String host_port) {
@@ -73,9 +196,13 @@ public class ContentServer {
             String[] lines = content.split("\n");
             for (String line : lines) {
                 String[] key_value = line.split(":");
-                if (key_value.length == 2) {
+                if (key_value.length == 2) { // Common case
                     jsonObject.addProperty(key_value[0], key_value[1]);
-                } else {
+                } else if (key_value.length == 1) { // Empty value
+                    jsonObject.addProperty(key_value[0], "");
+                } else if (key_value.length == 3) { // Short date format
+                    jsonObject.addProperty(key_value[0], key_value[1] + ":" + key_value[2]);
+                } else { // Invalid key-value pair
                     throw new JsonSyntaxException("\nInvalid key-value pair. Please check file for proper format.\n" +
                             "Error in line: " + line);
                 }
@@ -101,5 +228,21 @@ public class ContentServer {
         }
 
         return null;
+    }
+
+    static void printArray(JsonArray dataArray) {
+        StringBuilder sb = new StringBuilder();
+        for (JsonElement element : dataArray) {
+            JsonObject obj = element.getAsJsonObject();
+            // append key-value pairs to the string builder without renaming, remove all "
+            for (String key : obj.keySet()) {
+                sb.append(key).append(": ").append(obj.get(key)).append("\n");
+            }
+            sb.append("\n");
+        }
+
+        String out = sb.toString();
+
+        System.out.println(out);
     }
 }

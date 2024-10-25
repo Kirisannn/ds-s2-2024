@@ -41,9 +41,13 @@ public class AggregationServer {
             if (server_socket != null && !server_socket.isClosed()) {
                 // Delete weather.json file
                 try {
-                    File file = new File("src/runtimeFiles/weather.json");
-                    if (file.exists()) {
-                        file.delete();
+                    File weather = new File("src/runtimeFiles/weather.json");
+                    File backup = new File("src/runtimeFiles/backup_weather.json");
+                    if (weather.exists()) {
+                        weather.delete();
+                    }
+                    if (backup.exists()) {
+                        backup.delete();
                     }
                 } catch (Exception e) {
                     System.err.println("Error deleting weather data file:\n" + e);
@@ -78,31 +82,62 @@ public class AggregationServer {
     }
 
     private static void loadWeatherData() {
-        File file = new File("src/runtimeFiles/weather.json");
+        File backup = new File("src/runtimeFiles/backup_weather.json");
+        File weather = new File("src/runtimeFiles/weather.json");
 
-        if (file.exists()) {
-            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-                System.out.println("Data file exists. Loading weather data from file...\n");
+        if (backup.exists()) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(backup))) {
+                System.out.println("Backup file exists. Loading backup weather data...\n");
                 weatherData = JsonParser.parseReader(reader).getAsJsonArray();
+                // Write weatherData to weather.json
+                if (weather.exists()) {
+                    try (FileWriter writer = new FileWriter(weather)) {
+                        writer.write(weatherData.toString());
+                    }
+                }
             } catch (IOException | JsonSyntaxException e) {
-                System.err.println("Error loading weather data from weather.json:\n" + e);
-                weatherData = new JsonArray();
+                System.err.println("Error loading backup data:\n" + e);
+                try {
+                    if (weather.exists()) {
+                        System.out.println("Attempting to load from weather.json...\n");
+                        try (BufferedReader reader = new BufferedReader(new FileReader(weather))) {
+                            weatherData = JsonParser.parseReader(reader).getAsJsonArray();
+                        }
+                    } else {
+                        weatherData = new JsonArray();
+                    }
+                } catch (IOException | JsonSyntaxException ex) {
+                    System.err.println("Error loading weather data:\n" + ex);
+                    weatherData = new JsonArray();
+                }
             } catch (Exception e) {
-                System.err.println("Error loading weather data from weather.json. Unknown error:\n" + e);
-                weatherData = new JsonArray();
+                System.err.println("Error loading backup data. Unknown error:\n" + e);
+                try {
+                    if (weather.exists()) {
+                        System.out.println("Attempting to load from weather.json...\n");
+                        try (BufferedReader reader = new BufferedReader(new FileReader(weather))) {
+                            weatherData = JsonParser.parseReader(reader).getAsJsonArray();
+                        }
+                    } else {
+                        weatherData = new JsonArray();
+                    }
+                } catch (IOException | JsonSyntaxException ex) {
+                    System.err.println("Error loading weather data:\n" + ex);
+                    weatherData = new JsonArray();
+                }
             } finally {
-                System.out.println("Weather data loaded successfully.\n");
+                System.out.println("Backup data loaded successfully.\n");
             }
         } else {
             weatherData = new JsonArray();
             // Write the empty array to the file
-            try (FileWriter writer = new FileWriter(file)) {
+            try (FileWriter writer = new FileWriter(weather)) {
                 writer.write("[]");
-                System.out.println("Data file does not exist. Creating new empty weather data file...\n");
+                System.out.println("Fresh start. Creating new empty weather data file...\n");
             } catch (IOException e) {
-                System.err.println("Error creating weather data file:\n" + e);
+                System.err.println("Error creating weather file:\n" + e);
             } catch (Exception e) {
-                System.err.println("Error creating weather data file. Unknown error:\n" + e);
+                System.err.println("Unknown error creating weather file.:\n" + e);
             }
         }
     }
@@ -111,7 +146,9 @@ public class AggregationServer {
         try (BufferedReader in = new BufferedReader(new InputStreamReader(client_socket.getInputStream()));
                 PrintWriter out = new PrintWriter(client_socket.getOutputStream(), true)) {
             // Read the request
+
             String requestLine = in.readLine();
+            // If the first char of requestLine is not a letter, remove it
             System.out.println("---------------------------------------------------------------------------");
             System.out.println("Request received: " + requestLine);
 
@@ -135,33 +172,46 @@ public class AggregationServer {
         } catch (IOException e) {
             System.err.println("Error handling client request:\n" + e);
         }
+
+        // Print client connection closed client host and port
+        System.out.println("Connection {" + client_socket.getInetAddress().getHostAddress() + ":"
+                + client_socket.getLocalPort() + "} closed");
+        System.out.println("---------------------------------------------------------------------------\n");
     }
 
     private static JsonArray[] parseHeaders(BufferedReader in) {
         try {
             JsonArray[] headersBody = new JsonArray[2];
 
-            // Read in as String
+            // Read in the headers as a String
             StringBuilder input = new StringBuilder();
             String line;
+            int contentLength = 0;
+
             while ((line = in.readLine()) != null && !line.isEmpty()) {
                 input.append(line).append("\n");
+
+                // Look for Content-Length header
+                if (line.startsWith("Content-Length:")) {
+                    contentLength = Integer.parseInt(line.split(": ")[1]);
+                }
             }
 
-            System.out.println("\n" + input); // Uncomment for debugging
+            System.out.println("\nHeaders:\n" + input); // For debugging
 
             // Get headers as JsonArray
             String headerLines = input.toString();
             String[] headerLinesArray = headerLines.split("\n");
 
-            Boolean hasBody = false;
-            if (headerLinesArray.length > 4) {
-                hasBody = true;
-            }
+            // Determine if there is a body based on Content-Length
+            boolean hasBody = contentLength > 0;
+
+            // Find the number of headers (all lines before the blank line)
+            int numHeaders = headerLinesArray.length;
 
             // Get headers
             JsonArray headers = new JsonArray();
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < numHeaders; i++) {
                 String[] headerParts = headerLinesArray[i].split(": ");
                 JsonObject header = new JsonObject();
                 if (headerParts.length == 1) {
@@ -173,9 +223,14 @@ public class AggregationServer {
             }
             headersBody[0] = headers;
 
+            // If there is a body, read it based on Content-Length
             if (hasBody) {
-                JsonArray body = new JsonArray();
-                body.add(headerLinesArray[4]);
+                char[] bodyChars = new char[contentLength];
+                in.read(bodyChars, 0, contentLength);
+                String body = new String(bodyChars);
+
+                JsonArray bodyArray = JsonParser.parseString(body).getAsJsonArray();
+                headersBody[1] = bodyArray;
             }
 
             return headersBody;
@@ -208,8 +263,90 @@ public class AggregationServer {
     }
 
     private static void handlePutRequest(BufferedReader in, PrintWriter out) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'handlePostRequest'");
+        JsonArray[] headersBody = parseHeaders(in);
+        JsonArray headers = headersBody[0];
+
+        // Get lamport time from headers and update clock
+        for (JsonElement header : headers) {
+            JsonObject headerObj = header.getAsJsonObject();
+            if (headerObj.has("Lamport-Time")) {
+                int srcTime = headerObj.get("Lamport-Time").getAsInt();
+                clock.receive(srcTime);
+            }
+        }
+
+        // Get body as JsonArray
+        JsonArray body = headersBody[1];
+
+        // Update weather data
+        Boolean success = updateData(body);
+
+        String resBody;
+        if (success) {
+            resBody = "[{\"Success\": \"Weather data updated successfully.\"}]";
+        } else {
+            resBody = "[{\"Error\": \"Failed to update weather data.\"}]";
+        }
+
+        // Send response
+        sendResponse(out, 200, resBody, "OK");
+    }
+
+    static Boolean updateData(JsonArray newData) {
+        try {
+            for (JsonElement newEntry : newData) {
+                JsonObject curr = newEntry.getAsJsonObject();
+                String id = curr.get("id").getAsString();
+                boolean found = false;
+                
+                // Add clock time to entry with key "Lamport-Time"
+                curr.addProperty("Lamport-Time", clock.getTime()); 
+
+                // Search weather data for entry with id
+                for (JsonElement old : weatherData) {
+                    JsonObject dataObj = old.getAsJsonObject();
+                    if (dataObj.get("id").getAsString().equals(id)) {
+                        // If entry is found, remove old entry and add new entry
+                        weatherData.remove(old);
+                        weatherData.add(curr);
+                    }
+                }
+
+                // If entry with id is not found, add it
+                if (!found) {
+                    weatherData.add(newEntry);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error updating weather data variable:\n" + e);
+        }
+
+        // Rename weather.json file as backup_weather.json
+        try {
+            File weather = new File("src/runtimeFiles/weather.json");
+            File backup = new File("src/runtimeFiles/backup_weather.json");
+            if (weather.exists()) {
+                weather.renameTo(backup);
+            }
+        } catch (Exception e) {
+            System.err.println("Error renaming weather data file:\n" + e);
+        }
+
+        // Recreate weather.json file and write new data
+        try (FileWriter writer = new FileWriter("src/runtimeFiles/weather.json")) {
+            writer.write(weatherData.toString());
+        } catch (IOException e) {
+            System.err.println("Error writing to weather data file:\n" + e);
+        }
+
+        // Write new data to backup_weather.json
+        try (FileWriter writer = new FileWriter("src/runtimeFiles/backup_weather.json")) {
+            writer.write(weatherData.toString());
+        } catch (IOException e) {
+            System.err.println("Error writing to backup weather data file:\n" + e);
+        }
+
+        return true;
     }
 
     private static void handleGetRequest(BufferedReader in, PrintWriter out) {
