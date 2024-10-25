@@ -11,9 +11,9 @@ public class AggregationServer {
     static JsonArray weatherData;
     static LamportClock clock = new LamportClock();
     static Socket client_socket;
-    // Priority queue to store client_socket and its lamport time
-    static Map<Socket, Integer> clientLamportTime = new HashMap<>();
-
+    // Priority queue to store client_socket and its lamport time pair
+    
+    
     public static void main(String[] args) {
         // Read arguments
         int port = DEFAULT_PORT;
