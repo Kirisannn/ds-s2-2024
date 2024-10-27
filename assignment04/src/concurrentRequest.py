@@ -67,15 +67,29 @@ def sendGET(request):
         if "Lamport-Time" in line:
             break
 
-    print("Get Response:\n", output)
+    print(output)
+
+
+def startAggregator():
+    command = [
+        "java",
+        "-cp",
+        "bin:lib/gson-2.11.0.jar",
+        "AggregationServer",
+    ]
+    # Run the command
+    process = subprocess.Popen(
+        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+    )
+
+    return process
 
 
 def main():
     requests = ["PUT", "GET", "PUT"]
     files = getFiles()
 
-    # print("Files: ", files)
-    # print("Requests: ", requests)
+    aggregator = startAggregator()
 
     for i in range(len(requests)):
         request = requests[i]
@@ -90,7 +104,7 @@ def main():
 
         print()
 
-    print()
+    aggregator.terminate()  # Terminate the Aggregator process
 
 
 if __name__ == "__main__":
