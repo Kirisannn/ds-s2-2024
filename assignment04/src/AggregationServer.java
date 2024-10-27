@@ -329,11 +329,13 @@ public class AggregationServer {
                 }
 
                 // Send response
-                if (firstPUT) {
+                if (firstPUT && success) {
                     sendResponse(out, 201, resBody, "Created");
                     firstPUT = false;
-                } else {
+                } else if (!firstPUT && success) {
                     sendResponse(out, 200, resBody, "OK");
+                } else {
+                    sendResponse(out, 500, resBody, "Internal Server Error");
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt(); // Restore interrupted status
@@ -390,6 +392,7 @@ public class AggregationServer {
 
         } catch (Exception e) {
             System.err.println("Error updating weather data variable:\n" + e);
+            return false;
         }
 
         // Rename weather.json file as backup_weather.json

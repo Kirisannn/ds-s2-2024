@@ -1,0 +1,8 @@
+Starting Server on {0.0.0.0:4567}...
+Server listening...
+
+===========================================================================
+Connection {127.0.0.1:46013} accepted
+---------------------------------------------------------------------------
+Request received: PUT /weather.json HTTP/1.1
+Updated weather successfully.

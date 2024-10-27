@@ -1,10 +1,5 @@
-# Get a container of all the txt files in src/input
-# Make a variable for a sequence of requests, including GET and PUT requests
-
 import os
-import sys
 import subprocess
-
 
 def getFiles():
     files = []
