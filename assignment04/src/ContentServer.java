@@ -39,19 +39,16 @@ public class ContentServer {
         try (ServerSocket serverSocket = new ServerSocket(0)) {
             client_port = serverSocket.getLocalPort(); // Assign a random available port
             System.out.println("Selected client port for binding: " + client_port);
-
-            // Close the server socket after getting the port
-            serverSocket.close();
         } catch (IOException e) {
             System.err.println("Could not find an available port to bind: " + e);
             System.exit(1);
         }
 
         String filepath = args.length > 1 ? args[1] : null;
-        if (filepath == null) {
-            System.err.println("File path not provided. Please provide a file path.");
-            System.exit(1);
-        }
+        // if (filepath == null) {
+        // System.err.println("File path not provided. Please provide a file path.");
+        // System.exit(1);
+        // }
 
         // Main loop to continuously send data to the server
         while (true) {
@@ -95,6 +92,9 @@ public class ContentServer {
 
                     success = printResponse(responseParts);
 
+                    // Close socket
+                    writer.close();
+                    reader.close();
                 } catch (IOException e) {
                     System.err.println("Connection error: " + e.getMessage());
                 } finally {
@@ -135,12 +135,20 @@ public class ContentServer {
         // Format headers
         clock.increment(); // Increment Lamport clock as sending message
 
+        // If weather data not null, get content length
+        int contentLength = 0;
+        String body = "";
+        if (weatherData != null) {
+            contentLength = weatherData.toString().length();
+            body = weatherData.toString();
+        }
+
         String headers = "PUT /weather.json HTTP/1.1\n" +
                 "Content-Type: application/json\n" +
-                "Content-Length: " + weatherData.toString().getBytes().length + "\n" +
+                "Content-Length: " + contentLength + "\n" +
                 "Lamport-Time: " + clock.getTime() + "\n";
 
-        String[] message = { headers, weatherData.toString() };
+        String[] message = { headers, body };
 
         return message;
     }
@@ -185,47 +193,50 @@ public class ContentServer {
     // Check file provided
     static JsonArray readContent(String filepath) {
         System.out.println("Reading content from file: " + filepath);
-        try {
-            // Read file as string
-            String content = new String(Files.readAllBytes(Paths.get(filepath)));
-            // Print content
-            System.out.println("Content:\n\n" + content);
+        if (filepath != null) {
+            try {
+                // Read file as string
+                String content = new String(Files.readAllBytes(Paths.get(filepath)));
+                // Print content
+                System.out.println("Content:\n\n" + content);
 
-            // Take each line, extract key and pair, and add to JsonObject
-            JsonArray jsonArray = new JsonArray();
-            JsonObject jsonObject = new JsonObject();
-            String[] lines = content.split("\n");
-            for (String line : lines) {
-                String[] key_value = line.split(":");
-                if (key_value.length == 2) { // Common case
-                    jsonObject.addProperty(key_value[0], key_value[1]);
-                } else if (key_value.length == 1) { // Empty value
-                    jsonObject.addProperty(key_value[0], "");
-                } else if (key_value.length == 3) { // Short date format
-                    jsonObject.addProperty(key_value[0], key_value[1] + ":" + key_value[2]);
-                } else { // Invalid key-value pair
-                    throw new JsonSyntaxException("\nInvalid key-value pair. Please check file for proper format.\n" +
-                            "Error in line: " + line);
+                // Take each line, extract key and pair, and add to JsonObject
+                JsonArray jsonArray = new JsonArray();
+                JsonObject jsonObject = new JsonObject();
+                String[] lines = content.split("\n");
+                for (String line : lines) {
+                    String[] key_value = line.split(":");
+                    if (key_value.length == 2) { // Common case
+                        jsonObject.addProperty(key_value[0], key_value[1]);
+                    } else if (key_value.length == 1) { // Empty value
+                        jsonObject.addProperty(key_value[0], "");
+                    } else if (key_value.length == 3) { // Short date format
+                        jsonObject.addProperty(key_value[0], key_value[1] + ":" + key_value[2]);
+                    } else { // Invalid key-value pair
+                        throw new JsonSyntaxException(
+                                "\nInvalid key-value pair. Please check file for proper format.\n" +
+                                        "Error in line: " + line);
+                    }
                 }
+                jsonArray.add(jsonObject);
+
+                // Print the JsonArray
+                // System.out.println("JsonArray:\n\n" + jsonArray); // Comment out
+
+                return jsonArray;
+            } catch (FileNotFoundException e) {
+                System.err.println("File not found: " + filepath + "\n" + e);
+                System.exit(1);
+            } catch (IOException e) {
+                System.err.println("Error reading file: " + filepath + "\n" + e);
+                System.exit(1);
+            } catch (JsonSyntaxException e) {
+                System.err.println("\nInvalid JSON syntax in file: " + filepath + "\n(Error) " + e);
+                System.exit(1);
+            } catch (Exception e) {
+                System.err.println("Error reading file. Unknown Error: " + filepath + "\n" + e);
+                System.exit(1);
             }
-            jsonArray.add(jsonObject);
-
-            // Print the JsonArray
-            // System.out.println("JsonArray:\n\n" + jsonArray); // Comment out
-
-            return jsonArray;
-        } catch (FileNotFoundException e) {
-            System.err.println("File not found: " + filepath + "\n" + e);
-            System.exit(1);
-        } catch (IOException e) {
-            System.err.println("Error reading file: " + filepath + "\n" + e);
-            System.exit(1);
-        } catch (JsonSyntaxException e) {
-            System.err.println("\nInvalid JSON syntax in file: " + filepath + "\n(Error) " + e);
-            System.exit(1);
-        } catch (Exception e) {
-            System.err.println("Error reading file. Unknown Error: " + filepath + "\n" + e);
-            System.exit(1);
         }
 
         return null;

@@ -6,6 +6,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "TestMultiResponse",
+            "request": "launch",
+            "mainClass": "TestMultiResponse",
+            "projectName": "assignment04_de626574"
+        },
+        {
+            "type": "java",
             "name": "AggregationServer",
             "request": "launch",
             "mainClass": "AggregationServer",
@@ -18,8 +25,7 @@
             "request": "launch",
             "mainClass": "GETClient",
             "args": [
-                "localhost:4567",
-                // "IDS60901"
+                "localhost:4567"
             ],
             "projectName": "assignment04_de626574"
         },
@@ -30,7 +36,7 @@
             "mainClass": "ContentServer",
             "args": [
                 "localhost:4567",
-                "src/runtimeFiles/IDS60901.txt"
+                // "src/input/IDS60901.txt"
             ],
             "projectName": "assignment04_de626574"
         }

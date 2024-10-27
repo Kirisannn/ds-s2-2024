@@ -1,0 +1,17 @@
+id:IDS60914
+name:Geelong (Racecourse)
+state:VIC
+time_zone:AEST
+lat:-38.15
+lon:144.35
+local_date_time:15/04:00pm
+local_date_time_full:20230715160000
+air_temp:15.7
+apparent_t:13.0
+cloud:Partly cloudy
+dewpt:7.8
+press:1022.5
+rel_hum:58
+wind_dir:W
+wind_spd_kmh:22
+wind_spd_kt:12

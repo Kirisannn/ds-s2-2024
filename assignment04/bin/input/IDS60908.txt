@@ -1,0 +1,17 @@
+id:IDS60908
+name:Canberra (Airport)
+state:ACT
+time_zone:AEST
+lat:-35.31
+lon:149.20
+local_date_time:15/04:00pm
+local_date_time_full:20230715160000
+air_temp:9.2
+apparent_t:6.0
+cloud:Clear
+dewpt:3.3
+press:1024.8
+rel_hum:65
+wind_dir:N
+wind_spd_kmh:12
+wind_spd_kt:6

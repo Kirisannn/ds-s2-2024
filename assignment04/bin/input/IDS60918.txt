@@ -1,0 +1,17 @@
+id:IDS60918
+name:Bendigo (Airport)
+state:VIC
+time_zone:AEST
+lat:-36.74
+lon:144.32
+local_date_time:15/04:00pm
+local_date_time_full:20230715160000
+air_temp:14.9
+apparent_t:12.3
+cloud:Clear
+dewpt:6.5
+press:1024.1
+rel_hum:55
+wind_dir:SE
+wind_spd_kmh:12
+wind_spd_kt:6

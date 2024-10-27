@@ -1,11 +1,10 @@
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import com.google.gson.*;
+
 import java.util.AbstractMap.SimpleEntry;
 import java.util.concurrent.PriorityBlockingQueue;
-
-// import com.google.gson.JsonElement;
-import com.google.gson.*;
 
 public class AggregationServer {
     static final int DEFAULT_PORT = 4567;
@@ -13,24 +12,23 @@ public class AggregationServer {
     static JsonArray weatherData;
     static LamportClock clock = new LamportClock();
     static Socket client_socket;
+    static File weather = new File("src/runtimeFiles/weather.json");
+    static File backup = new File("src/runtimeFiles/backup_weather.json");
+    static Boolean firstPUT = false;
 
-    // Priority queue to store client_socket and its lamport time pair
     static final PriorityBlockingQueue<SimpleEntry<JsonArray, Integer>> requestQueue = new PriorityBlockingQueue<>(10,
             new Comparator<SimpleEntry<JsonArray, Integer>>() {
                 @Override
                 public int compare(SimpleEntry<JsonArray, Integer> o1, SimpleEntry<JsonArray, Integer> o2) {
-                    // Compare based on Lamport time
                     return o1.getValue().compareTo(o2.getValue());
                 }
             });
-    private static final Object dataLock = new Object(); // Lock for synchronizing access to weatherData
-    
-    
+    private static final Object dataLock = new Object();
+
     public static void main(String[] args) {
-        // Read arguments
         int port = DEFAULT_PORT;
 
-        if (args.length > 0) {
+        if (args.length > 0) { // Read arguments
             port = Integer.parseInt(args[0]);
             if (port < 0 || port > 65535) {
                 System.err.println("Invalid port number (Out of range 0-65535)");
@@ -48,20 +46,17 @@ public class AggregationServer {
         } catch (Exception e) {
             System.err.println("Could not connect to server. Unknown error\n" + e);
             System.exit(1);
-        }
+        } // End of server socket creation
 
-        // Shutdown hook for SIGINT
+        // Shutdown hook for clean up
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("\nShutting down server...");
             if (server_socket != null && !server_socket.isClosed()) {
-                // Delete weather.json file
                 try {
-                    File weather = new File("src/runtimeFiles/weather.json");
-                    File backup = new File("src/runtimeFiles/backup_weather.json");
-                    if (weather.exists()) {
+                    if (weather.exists()) { // Delete weather.json file
                         weather.delete();
                     }
-                    if (backup.exists()) {
+                    if (backup.exists()) { // Delete backup_weather.json file
                         backup.delete();
                     }
                 } catch (Exception e) {
@@ -77,47 +72,39 @@ public class AggregationServer {
                     System.err.println("Error while closing server socket:\n" + e);
                 }
             }
-        }));
+        })); // End of shutdown hook
 
-        // Load weather data
-        loadWeatherData();
+        loadWeatherData(); // Load weather data
 
-        // Listening for incoming connections
         while (true) {
-            try {
-                client_socket = server_socket.accept();
+            try { // Listening for incoming connections
+                client_socket = server_socket.accept(); // Connection from client
 
-                // Connection from client
                 System.out.println("===========================================================================");
                 System.out.println("Connection {" + client_socket.getInetAddress().getHostAddress() + ":"
                         + client_socket.getPort() + "} accepted");
 
-                // Create a new thread for the client
-                new Thread(() -> handleClient(client_socket)).start();
-
+                new Thread(() -> handleClient(client_socket)).start(); // Create a new thread for the client
             } catch (IOException e) {
                 System.err.println("Error accepting connection:\n" + e);
                 break;
-            }
+            } // End of connection catch block
+        } // End of listening loop
+    } // End of main
 
-        }
-    }
-
-    private static void loadWeatherData() {
-        File backup = new File("src/runtimeFiles/backup_weather.json");
-        File weather = new File("src/runtimeFiles/weather.json");
-
-        if (backup.exists()) {
-            try (BufferedReader reader = new BufferedReader(new FileReader(backup))) {
+    private static void loadWeatherData() { // Load weather data from files
+        if (backup.exists()) { // Load backup data if it exists
+            try (BufferedReader reader = new BufferedReader(new FileReader(backup))) { // Load backup data
                 System.out.println("Backup file exists. Loading backup weather data...\n");
                 weatherData = JsonParser.parseReader(reader).getAsJsonArray();
-                // Write weatherData to weather.json
-                if (weather.exists()) {
+
+                if (weather.exists()) { // If weather.json exists, overwrite it with backup data
                     try (FileWriter writer = new FileWriter(weather)) {
-                        writer.write(weatherData.toString());
+                        writer.write(weatherData.toString()); // Write backup data to weather.json
                     }
                 }
-            } catch (IOException | JsonSyntaxException e) {
+            } catch (IOException | JsonSyntaxException e) { // If failed to load backup data, load weather.json if it
+                                                            // exists
                 System.err.println("Error loading backup data:\n" + e);
                 try {
                     if (weather.exists()) {
@@ -125,8 +112,6 @@ public class AggregationServer {
                         try (BufferedReader reader = new BufferedReader(new FileReader(weather))) {
                             weatherData = JsonParser.parseReader(reader).getAsJsonArray();
                         }
-                    } else {
-                        weatherData = new JsonArray();
                     }
                 } catch (IOException | JsonSyntaxException ex) {
                     System.err.println("Error loading weather data:\n" + ex);
@@ -150,65 +135,57 @@ public class AggregationServer {
             } finally {
                 System.out.println("Backup data loaded successfully.\n");
             }
-        } else {
+        } else { // If backup file does not exist, weather.json also does not exist
             weatherData = new JsonArray();
-            // Write the empty array to the file
-            try (FileWriter writer = new FileWriter(weather)) {
-                writer.write("[]");
-                System.out.println("Fresh start. Creating new empty weather data file...\n");
-            } catch (IOException e) {
-                System.err.println("Error creating weather file:\n" + e);
-            } catch (Exception e) {
-                System.err.println("Unknown error creating weather file.:\n" + e);
-            }
+            // // Write the empty array to the file
+            // try (FileWriter writer = new FileWriter(weather)) {
+            // writer.write("[]");
+            // System.out.println("Fresh start. Creating new empty weather data file...\n");
+            // } catch (IOException e) {
+            // System.err.println("Error creating weather file:\n" + e);
+            // } catch (Exception e) {
+            // System.err.println("Unknown error creating weather file.:\n" + e);
+            // }
         }
     }
 
-    private static void handleClient(Socket client_socket) {
+    private static void handleClient(Socket client_socket) { // Handle incoming requests
         try (BufferedReader in = new BufferedReader(new InputStreamReader(client_socket.getInputStream()));
-                PrintWriter out = new PrintWriter(client_socket.getOutputStream(), true)) {
-            // Read the request
-
-            String requestLine = in.readLine();
-            // If the first char of requestLine is not a letter, remove it
+                PrintWriter out = new PrintWriter(client_socket.getOutputStream(), true)) { // Read the request
             System.out.println("---------------------------------------------------------------------------");
+            String requestLine = in.readLine();
             System.out.println("Request received: " + requestLine);
 
-            // Parse the request
-            if (requestLine == null) {
+            if (requestLine == null) { // If request is null, ignore
                 System.err.println("Invalid request received. Ignoring...");
                 return;
             }
 
             // Check request type
-            if (requestLine.startsWith("GET")) {
-                // Handle GET request
+            if (requestLine.startsWith("GET")) { // Handle GET request
                 handleGetRequest(in, out);
-            } else if (requestLine.startsWith("PUT")) {
-                // Handle PUT request
+            } else if (requestLine.startsWith("PUT")) { // Handle PUT request
                 handlePutRequest(in, out);
-            } else {
-                // Handle unsupported request
+            } else { // Handle unsupported request
                 handleUnsupportedRequests(out);
             }
-        } catch (IOException e) {
+        } catch (IOException e) { // Error handling client request
             System.err.println("Error handling client request:\n" + e);
-        }
-
-        // Close the client socket
-        try {
-            client_socket.close();
-        } catch (IOException e) {
-            System.err.println("IO error closing client socket:\n" + e);
-        } catch (Exception e) {
-            System.err.println("Unknown error closing client socket:\n" + e);
+        } finally {
+            try { // Close client socket after handling request
+                client_socket.close();
+            } catch (IOException e) { // IO error closing client socket
+                System.err.println("IO error closing client socket:\n" + e);
+            } catch (Exception e) { // Unknown error closing client socket
+                System.err.println("Unknown error closing client socket:\n" + e);
+            }
         }
 
         System.out.println("Updated weather successfully.");
         System.out.println("---------------------------------------------------------------------------\n");
     }
 
-    private static JsonArray[] parseHeaders(BufferedReader in) {
+    private static JsonArray[] parseHeaders(BufferedReader in) { // Parse headers and body from request
         try {
             JsonArray[] headersBody = new JsonArray[2];
 
@@ -217,7 +194,7 @@ public class AggregationServer {
             String line;
             int contentLength = 0;
 
-            while ((line = in.readLine()) != null && !line.isEmpty()) {
+            while ((line = in.readLine()) != null && !line.isEmpty()) { // Read headers until blank line
                 input.append(line).append("\n");
 
                 // Look for Content-Length header
@@ -226,7 +203,7 @@ public class AggregationServer {
                 }
             }
 
-            System.out.println("\nHeaders:\n" + input); // For debugging
+            // System.out.println("\nHeaders:\n" + input); // Comment for debugging
 
             // Get headers as JsonArray
             String headerLines = input.toString();
@@ -270,6 +247,7 @@ public class AggregationServer {
         return null;
     }
 
+    // Send response to client
     private static void sendResponse(PrintWriter out, int statusCode, String responseBody, String statusMessage) {
         String statusLine = "HTTP/1.1 " + statusCode + " " + statusMessage + "\r\n";
         clock.increment();
@@ -282,6 +260,7 @@ public class AggregationServer {
         out.flush();
     }
 
+    // Handle unsupported requests
     private static void handleUnsupportedRequests(PrintWriter out) {
         String responseBody = "[{\"Error\": \"Unsupported request method. Only GET and PUT requests are supported.\"}]";
         sendResponse(out, 400, responseBody, "Bad Request");
@@ -291,6 +270,7 @@ public class AggregationServer {
 
     }
 
+    // Handle PUT request
     private static void handlePutRequest(BufferedReader in, PrintWriter out) {
         JsonArray[] headersBody = parseHeaders(in);
         JsonArray headers = headersBody[0];
@@ -318,6 +298,7 @@ public class AggregationServer {
         }
     }
 
+    // Process the request queue
     private static void processQueue(PrintWriter out) {
         // While there are requests in the queue
         while (true) {
@@ -326,11 +307,16 @@ public class AggregationServer {
                 SimpleEntry<JsonArray, Integer> request = requestQueue.take(); // This will block until an element is
                                                                                // available
                 JsonArray body = request.getKey();
-                // Integer lamportTime = request.getValue();
+                if (body == null) {
+                    sendResponse(out, 204,
+                            "[{\"Success\": \"Successful connection, but no content was sent.\"}]",
+                            "No Content");
+                    break;
+                }
 
                 // Process the request
                 Boolean success;
-                synchronized (dataLock) { // Synchronize only on shared resource
+                synchronized (dataLock) { // Synchronise only on shared resource
                     success = updateData(body);
                 }
 
@@ -343,7 +329,12 @@ public class AggregationServer {
                 }
 
                 // Send response
-                sendResponse(out, 200, resBody, "OK");
+                if (firstPUT) {
+                    sendResponse(out, 201, resBody, "Created");
+                    firstPUT = false;
+                } else {
+                    sendResponse(out, 200, resBody, "OK");
+                }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt(); // Restore interrupted status
                 System.err.println("Processing thread interrupted:\n" + e);
@@ -359,39 +350,50 @@ public class AggregationServer {
         }
     }
 
+    // Update weather data
     static synchronized Boolean updateData(JsonArray newData) {
-        try {
-            for (JsonElement newEntry : newData) {
-                JsonObject curr = newEntry.getAsJsonObject();
-                String id = curr.get("id").getAsString();
-                boolean found = false;
-                
-                // Add clock time to entry with key "Lamport-Time"
-                curr.addProperty("Lamport-Time", clock.getTime()); 
+        // Boolean notEmpty = false;
 
-                // Search weather data for entry with id
-                for (JsonElement old : weatherData) {
-                    JsonObject dataObj = old.getAsJsonObject();
-                    if (dataObj.get("id").getAsString().equals(id)) {
-                        // If entry is found, remove old entry and add new entry
-                        weatherData.remove(old);
-                        weatherData.add(curr);
+        try {
+            if (!backup.exists()) {
+                firstPUT = true;
+            }
+
+            if (newData != null) {
+                // notEmpty = true;
+                for (JsonElement newEntry : newData) {
+                    JsonObject curr = newEntry.getAsJsonObject();
+                    String id = curr.get("id").getAsString();
+                    boolean found = false;
+
+                    // Add clock time to entry with key "Lamport-Time"
+                    curr.addProperty("Lamport-Time", clock.getTime());
+
+                    // Search weather data for entry with id
+                    for (JsonElement old : weatherData) {
+                        JsonObject dataObj = old.getAsJsonObject();
+                        if (dataObj.get("id").getAsString().equals(id)) {
+                            // If entry is found, remove old entry and add new entry
+                            weatherData.remove(old);
+                            weatherData.add(curr);
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    // If entry with id is not found, add it
+                    if (!found) {
+                        weatherData.add(newEntry);
                     }
                 }
-
-                // If entry with id is not found, add it
-                if (!found) {
-                    weatherData.add(newEntry);
-                }
             }
+
         } catch (Exception e) {
             System.err.println("Error updating weather data variable:\n" + e);
         }
 
         // Rename weather.json file as backup_weather.json
         try {
-            File weather = new File("src/runtimeFiles/weather.json");
-            File backup = new File("src/runtimeFiles/backup_weather.json");
             if (weather.exists()) {
                 weather.renameTo(backup);
             }
@@ -416,6 +418,7 @@ public class AggregationServer {
         return true;
     }
 
+    // Handle GET request
     private static void handleGetRequest(BufferedReader in, PrintWriter out) {
         JsonArray[] headersBody = parseHeaders(in);
         JsonArray headers = headersBody[0];
