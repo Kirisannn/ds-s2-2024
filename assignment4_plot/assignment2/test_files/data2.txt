@@ -1,0 +1,17 @@
+id:IDS60902
+name:New Station
+state: SA
+time_zone:CST
+lat:-35.0
+lon:139.0
+local_date_time:15/04:00pm
+local_date_time_full:20230715170000
+air_temp:15.0
+apparent_t:10.0
+cloud:Clear
+dewpt:6.0
+press:1025.0
+rel_hum:65
+wind_dir:NE
+wind_spd_kmh:20
+wind_spd_kt:10

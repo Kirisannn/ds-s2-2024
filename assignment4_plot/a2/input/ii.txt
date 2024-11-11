@@ -1,0 +1,17 @@
+id:IDS60904
+name:Brisbane (City)
+state: QLD
+time_zone:AEST
+lat:-27.47
+lon:153.02
+local_date_time:15/04:00pm
+local_date_time_full:20230715160000
+air_temp:22.7
+apparent_t:21.3
+cloud:Clear
+dewpt:15.4
+press:1018.3
+rel_hum:65
+wind_dir:NE
+wind_spd_kmh:25
+wind_spd_kt:13

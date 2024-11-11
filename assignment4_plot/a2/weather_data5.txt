@@ -1,0 +1,35 @@
+id:IDS60904
+name:Brisbane (South Bank)
+state:QLD
+time_zone:EST
+lat:-27.4813
+lon:153.0249
+local_date_time:15/04:20pm
+local_date_time_full:20230715162000
+air_temp:27.9
+apparent_t:28.5
+cloud:Mostly cloudy
+dewpt:22.4
+press:1012.1
+rel_hum:78
+wind_dir:ESE
+wind_spd_kmh:16
+wind_spd_kt:8
+
+id:IDS60904
+name:Brisbane (South Bank)
+state:QLD
+time_zone:EST
+lat:-27.4813
+lon:153.0249
+local_date_time:15/04:20pm
+local_date_time_full:20230715162000
+air_temp:27.9
+apparent_t:28.5
+cloud:Mostly cloudy
+dewpt:22.4
+press:1012.1
+rel_hum:78
+wind_dir:ESE
+wind_spd_kmh:16
+wind_spd_kt:8

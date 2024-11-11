@@ -1,0 +1,35 @@
+id:IDS10000
+name:Brisbane (Gold Coast)
+state:NSW
+time_zone:EST
+lat:-33.8918
+lon:151.2779
+local_date_time:15/04:30pm
+local_date_time_full:20230715163000
+air_temp:24.5
+apparent_t:26.8
+cloud:Clear
+dewpt:16.2
+press:1014.3
+rel_hum:66
+wind_dir:NW
+wind_spd_kmh:19
+wind_spd_kt:10
+
+id:IDS10000
+name:Melbourne (Federation Square)
+state:VIC
+time_zone:EST
+lat:-37.8175
+lon:144.9671
+local_date_time:15/04:15pm
+local_date_time_full:20230715161500
+air_temp:18.2
+apparent_t:17.4
+cloud:Partly cloudy
+dewpt:12.7
+press:1018.8
+rel_hum:71
+wind_dir:SW
+wind_spd_kmh:14
+wind_spd_kt:7

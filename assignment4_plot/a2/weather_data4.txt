@@ -1,0 +1,17 @@
+id:IDS60904
+name:
+state:
+time_zone:
+lat:
+lon:
+local_date_time:
+local_date_time_full:
+air_temp:
+apparent_t:
+cloud:
+dewpt:
+press:
+rel_hum:
+wind_dir:
+wind_spd_kmh:
+wind_spd_kt:

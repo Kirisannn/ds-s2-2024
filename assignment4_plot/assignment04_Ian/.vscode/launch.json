@@ -1,0 +1,44 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "TestMultiResponse",
+            "request": "launch",
+            "mainClass": "TestMultiResponse",
+            "projectName": "assignment04_de626574"
+        },
+        {
+            "type": "java",
+            "name": "AggregationServer",
+            "request": "launch",
+            "mainClass": "AggregationServer",
+            "args": [],
+            "projectName": "assignment04_de626574"
+        },
+        {
+            "type": "java",
+            "name": "GETClient",
+            "request": "launch",
+            "mainClass": "GETClient",
+            "args": [
+                "localhost:4567"
+            ],
+            "projectName": "assignment04_de626574"
+        },
+        {
+            "type": "java",
+            "name": "ContentServer",
+            "request": "launch",
+            "mainClass": "ContentServer",
+            "args": [
+                "localhost:4567",
+                // "src/input/IDS60901.txt"
+            ],
+            "projectName": "assignment04_de626574"
+        }
+    ]
+}

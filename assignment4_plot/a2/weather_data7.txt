@@ -1,0 +1,17 @@
+id:IDS60906
+name:Extreme Weather Station
+state:XX
+time_zone:ZZT
+lat:-90.0
+lon:180.0
+local_date_time:31/12:11pm
+local_date_time_full:20231231235959
+air_temp:-100.0
+apparent_t:-100.0
+cloud:Extreme
+dewpt:-100.0
+press:2000.0
+rel_hum:0
+wind_dir:N
+wind_spd_kmh:500
+wind_spd_kt:270

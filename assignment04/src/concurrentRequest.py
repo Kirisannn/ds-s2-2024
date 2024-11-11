@@ -1,5 +1,7 @@
+import matplotlib.pyplot as plt
 import os
 import subprocess
+import time
 
 def getFiles():
     files = []
@@ -30,10 +32,10 @@ def sendPUT(request, file):
 
         # print(output.strip())
         if "Success" in output:
-            print("PUT Response: ", output)
+            # print("PUT Response: ", output)
             break
         elif "Error" in output:
-            print("PUT Response: ", output)
+            # print("PUT Response: ", output)
             break
 
     process.terminate()
@@ -67,7 +69,7 @@ def sendGET(request):
         if "Lamport-Time" in line:
             break
 
-    print(output)
+    # print(output)
 
 
 def startAggregator():
@@ -85,27 +87,61 @@ def startAggregator():
     return process
 
 
-def main():
-    requests = ["PUT", "GET", "PUT"]
+def runTest(multiplier):
+    requests = [
+        "PUT",
+        "GET",
+        "PUT",
+        "PUT",
+        "PUT",
+        "GET",
+        "GET",
+        "PUT",
+        "GET",
+        "GET",
+    ] * multiplier
+
     files = getFiles()
 
     aggregator = startAggregator()
+
+    # Start timer here
+    start_time = time.time()
 
     for i in range(len(requests)):
         request = requests[i]
         if request == "PUT":
             file = files.pop(0)  # Pop the first element in the list
-            print("Request: PUT - ", file)
+            # print("Request: PUT - ", file)
 
             sendPUT(request, file)
         elif request == "GET":
-            print("Request: GET")
+            # print("Request: GET")
             sendGET(request)
 
         print()
 
     aggregator.terminate()  # Terminate the Aggregator process
 
+    # End timer here
+    end_time = time.time()
+    elapsed = (end_time - start_time) * 1000
+    return elapsed
+
+
+def main():
+    data = []
+
+    for multiplier in range(10):
+        time = runTest(multiplier)
+        print(f"No. of Requests: {multiplier * 10}, Time: {time} ms")
+        data.append((multiplier * 10, time))
+
+    # Write the data to a csv file with headers "RequestsNumber" and "Time"
+    with open("src/output/scaleTest.csv", "w") as file:
+        file.write("RequestsNumber,Time\n")
+        for d in data:
+            file.write(f"{d[0]},{d[1]}\n")
 
 if __name__ == "__main__":
     main()

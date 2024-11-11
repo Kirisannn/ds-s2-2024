@@ -1,0 +1,17 @@
+id:IDS60905
+name:Adelaide
+state:SA
+time_zone:CST
+lat:invalid_latitude
+lon:invalid_longitude
+local_date_time:invalid_date_time
+local_date_time_full:invalid_date_time_full
+air_temp:invalid_temp
+apparent_t:invalid_temp
+cloud:Partly cloudy
+dewpt:invalid_dewpt
+press:invalid_press
+rel_hum:invalid_hum
+wind_dir:S
+wind_spd_kmh:invalid_speed
+wind_spd_kt:invalid_speed

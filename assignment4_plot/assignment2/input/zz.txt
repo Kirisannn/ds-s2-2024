@@ -1,0 +1,17 @@
+id:IDS60911
+name:Townsville (Airport)
+state:QLD
+time_zone:AEST
+lat:-19.25
+lon:146.77
+local_date_time:15/04:00pm
+local_date_time_full:20230715160000
+air_temp:30.1
+apparent_t:32.4
+cloud:Mostly clear
+dewpt:21.9
+press:1016.8
+rel_hum:65
+wind_dir:NE
+wind_spd_kmh:28
+wind_spd_kt:15

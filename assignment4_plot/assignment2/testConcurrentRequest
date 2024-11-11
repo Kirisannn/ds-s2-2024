@@ -1,0 +1,4 @@
+#!/bin/bash
+
+# echo "RequestsNumber,Time" > output/scaleTest100.csv
+python concurrentRequest.py >> output/scaleTest100.csv

@@ -1,0 +1,17 @@
+id:IDS60909
+name:Alice Springs (Airport)
+state:NT
+time_zone:ACST
+lat:-23.80
+lon:133.88
+local_date_time:15/04:00pm
+local_date_time_full:20230715160000
+air_temp:25.3
+apparent_t:24.8
+cloud:Clear
+dewpt:7.9
+press:1017.5
+rel_hum:30
+wind_dir:SE
+wind_spd_kmh:18
+wind_spd_kt:10

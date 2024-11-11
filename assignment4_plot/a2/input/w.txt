@@ -1,0 +1,17 @@
+id:IDS60916
+name:Wagga Wagga (Airport)
+state:NSW
+time_zone:AEST
+lat:-35.16
+lon:147.47
+local_date_time:15/04:00pm
+local_date_time_full:20230715160000
+air_temp:12.3
+apparent_t:8.9
+cloud:Partly cloudy
+dewpt:4.1
+press:1026.3
+rel_hum:60
+wind_dir:SW
+wind_spd_kmh:18
+wind_spd_kt:10

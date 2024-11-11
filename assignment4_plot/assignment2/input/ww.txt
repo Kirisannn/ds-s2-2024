@@ -1,0 +1,17 @@
+id:IDS60912
+name:Broome (Airport)
+state:WA
+time_zone:AWST
+lat:-17.95
+lon:122.23
+local_date_time:15/04:00pm
+local_date_time_full:20230715160000
+air_temp:33.5
+apparent_t:36.2
+cloud:Clear
+dewpt:23.7
+press:1008.9
+rel_hum:60
+wind_dir:NW
+wind_spd_kmh:20
+wind_spd_kt:11

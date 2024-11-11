@@ -1,0 +1,17 @@
+id:IDS60906
+name:Hobart (Ellerslie Road)
+state: TAS
+time_zone:AEST
+lat:-42.88
+lon:147.33
+local_date_time:15/04:00pm
+local_date_time_full:20230715160000
+air_temp:10.5
+apparent_t:7.2
+cloud:Partly cloudy
+dewpt:4.5
+press:1025.2
+rel_hum:60
+wind_dir:SE
+wind_spd_kmh:10
+wind_spd_kt:5

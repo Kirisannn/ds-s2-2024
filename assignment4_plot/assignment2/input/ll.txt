@@ -1,0 +1,17 @@
+id:IDS60915
+name:Launceston (Airport)
+state:TAS
+time_zone:AEST
+lat:-41.54
+lon:147.21
+local_date_time:15/04:00pm
+local_date_time_full:20230715160000
+air_temp:11.9
+apparent_t:9.1
+cloud:Mostly clear
+dewpt:3.9
+press:1023.7
+rel_hum:55
+wind_dir:NW
+wind_spd_kmh:16
+wind_spd_kt:9

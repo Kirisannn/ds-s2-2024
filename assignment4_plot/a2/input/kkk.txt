@@ -1,0 +1,17 @@
+id:IDS60910
+name:Cairns (Airport)
+state:QLD
+time_zone:AEST
+lat:-16.88
+lon:145.75
+local_date_time:15/04:00pm
+local_date_time_full:20230715160000
+air_temp:28.9
+apparent_t:31.5
+cloud:Partly cloudy
+dewpt:22.1
+press:1014.2
+rel_hum:70
+wind_dir:E
+wind_spd_kmh:23
+wind_spd_kt:12

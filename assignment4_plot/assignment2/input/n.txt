@@ -1,0 +1,17 @@
+id:IDS60919
+name:Rockhampton (Airport)
+state:QLD
+time_zone:AEST
+lat:-23.38
+lon:150.48
+local_date_time:15/04:00pm
+local_date_time_full:20230715160000
+air_temp:28.4
+apparent_t:30.7
+cloud:Partly cloudy
+dewpt:21.5
+press:1015.2
+rel_hum:68
+wind_dir:E
+wind_spd_kmh:25
+wind_spd_kt:13

@@ -1,0 +1,17 @@
+id:IDS60913
+name:Newcastle (Nobbys Head)
+state:NSW
+time_zone:AEST
+lat:-32.93
+lon:151.78
+local_date_time:15/04:00pm
+local_date_time_full:20230715160000
+air_temp:21.4
+apparent_t:20.0
+cloud:Mostly clear
+dewpt:12.6
+press:1019.2
+rel_hum:55
+wind_dir:S
+wind_spd_kmh:24
+wind_spd_kt:13
