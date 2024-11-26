@@ -77,7 +77,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 200
   },
   "right": {
     "id": "d8c2761de33a650c",
@@ -164,6 +164,8 @@
   },
   "active": "380f95c3dfa7fb20",
   "lastOpenFiles": [
+    "Test1.log",
+    "Election.java",
     "bin/Prepare.class",
     "src/Message.java",
     "bin/Message.class",
@@ -172,8 +174,6 @@
     "bin/Proposer.class",
     "bin/PrepareMessage.class",
     "bin/PromiseMessage.class",
-    "bin/Message$PromiseMessage.class",
-    "bin/Message$PrepareMessage.class",
-    "bin/p.class"
+    "bin/Message$PromiseMessage.class"
   ]
 }

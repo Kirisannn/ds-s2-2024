@@ -1,0 +1,72 @@
+# Distributed Systems - Assignment 3 (Shin Yi Goh a1847337)
+
+## To compile the Java code, run the following command in a terminal:
+```
+make all
+```
+
+## Testing Paxos implementation:
+-- Note: The terminal may need to be killed each time after running a test using `Ctrl+C` --
+
+<b>1. To test for M1-M9 having immediate responses to voting queries:</b>
+```
+make test1
+```
+Testing scenario: 
+- M4 initiates a proposal for candidate M1
+
+#
+
+<b>2. To test for 2 councillors sending voting proposals at the same time, while M1-M9 are still giving immediate responses:</b>
+```
+make test2
+```
+Testing scenario: 
+- M5 initiates a proposal for candidate M2
+- M6 initiates a proposal for candidate M3
+
+#
+
+<b>3. To test for M1-M9 having varying response behaviours to 1 proposal:</b>
+```
+make test3
+```
+Testing scenario: 
+- M7 initiates a proposal for candidate M1
+
+#
+
+<b>4. To test for 5 councillors sending voting proposals concurrently, while M1-M9 have varying response behaviours:</b>
+```
+make test4
+```
+Testing scenario: 
+- M7 initiates a proposal for candidate M1
+- M8 initiates a proposal for candidate M2
+- M9 initiates a proposal for candidate M3
+- M4 initiates a proposal for candidate M2
+- M5 initiates a proposal for candidate M1
+
+#
+
+<b>5. To test for when M2 & M3 proposes and then either 1 of them or both go offline randomly (may require repeated testing to view behaviours):</b>
+```
+make test5
+```
+Testing scenario:
+- M2 initiates a proposal for candidate M3
+- M3 initiates a proposal for candidate M1
+
+## To clean up compiled Class files:
+```
+make clean
+```
+
+## Paxos Structure
+| Class | Description |
+| ---- | ---- |
+| PaxosNode | Represents a node (member) in the system that can act as a proposer, acceptor, or learner |
+| PaxosServer | Server-side of each node, responsible for listening for incoming messages |
+| PaxosClient | Client-side of each node that sends messages to other nodes |
+| PaxosMessage | Represents messages exchanged between nodes (Prepare, Promise, Accept, & Response) |
+| PaxosProtocol | Handles the logic for the 3 Paxos roles (Proposer, Acceptor, Learner) |
