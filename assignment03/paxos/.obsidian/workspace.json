@@ -14,11 +14,27 @@
               "type": "markdown",
               "state": {
                 "file": "README.md",
-                "mode": "preview",
+                "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
               "title": "README"
+            }
+          }
+        ]
+      },
+      {
+        "id": "35e8e812f2442ba2",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "51ac2aa8148df085",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "New tab"
             }
           }
         ]
@@ -162,20 +178,29 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "9a9ef5d67f04b0c9",
+  "active": "51ac2aa8148df085",
   "lastOpenFiles": [
-    "bin/Fail.class",
-    "bin/Accept.class",
-    "bin/Propose.class",
-    "bin/Promise.class",
-    "bin/Prepare.class",
-    "bin/Listener.class",
-    "bin/Message.class",
-    "bin/Paxos.class",
-    "bin/Member.class",
-    "bin/Election.class",
-    "src/Paxos.java",
+    "paxos/lib/slf4j-simple-2.0.16.jar",
+    "paxos/lib/slf4j-api-2.0.16.jar",
+    "paxos/lib/gson-2.11.0.jar",
+    "paxos/src/Paxos.java",
+    "paxos/src/Message.java",
+    "paxos/src/Member.java",
+    "paxos/src/Listener.java",
+    "paxos/src/Election.java",
+    "paxos/bin/Propose.class",
+    "paxos/bin/Promise.class",
+    "paxos/bin/Prepare.class",
+    "paxos/README.md",
+    "Testing Outputs.md",
+    "Pasted image 20241128033458.png",
+    "Pasted image 20241128033437.png",
+    "Pasted image 20241128033405.png",
     "README.md",
+    "Pasted image 20241128033226.png",
+    "Pasted image 20241128033129.png",
+    "Pasted image 20241128033031.png",
+    "Pasted image 20241128032907.png",
     "README-2.md"
   ]
 }

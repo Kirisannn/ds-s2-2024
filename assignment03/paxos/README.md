@@ -51,7 +51,7 @@ Follow these steps to set up and prepare the project for execution:
 	- Ensure external library JARs are located in `bin/`
 	- Otherwise, download the required JARs and move to `lib/`
 3. **Ensure open ports:**
-	- Open ports **5001–5009** on your system to allow socket-based communication between nodes.
+	- Ensure ports **5001–5009** on your system are available for use, to allow socket-based communication between nodes.
 4. **Build the Project:**
 	- Navigate to the project root in your terminal and run the following command:
 		```
@@ -94,9 +94,9 @@ To execute the project and observe the results for different scenarios, follow t
 			make test5
 			```
 			- Logs output to `Test5.log`.
-1. **View Logs:**
+3. **View Logs:**
 	- After executing a test, view its corresponding log file to review the output.
-1. **Clean Up (Optional):**
+5. **Clean Up (Optional):**
 	- Removes all built `.class` files in `bin` directory.
 		```
 		make clean
