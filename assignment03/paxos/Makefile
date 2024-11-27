@@ -4,5 +4,6 @@ BUILD_PATH=bin
 compile:	src/*.java
 	javac -cp $(CLASSPATH) -d $(BUILD_PATH) src/*.java
 
-election:
-	java -cp $(CLASSPATH):$(BUILD_PATH) Election
+# 	java -cp $(CLASSPATH):$(BUILD_PATH) Election 1 > Election.log 2>&1 && exit 0 || exit 1
+test1:
+	java -cp $(CLASSPATH):$(BUILD_PATH) Election 1

@@ -17,8 +17,8 @@ public class Paxos {
     private final ExecutorService executor = Executors.newFixedThreadPool(10);
     private final String memberId;
 
-    private int totalProposals = 0;
-    private int currentMaxProposal = 0;
+    private AtomicInteger totalProposals = new AtomicInteger(0);
+    private AtomicInteger currentMaxProposal = new AtomicInteger(0);
     private int currentProposal = 0;
     private String currentCandidate = "";
     private int acceptedProposal = 0;
@@ -75,8 +75,7 @@ public class Paxos {
     }
 
     private int incAndGetProposalNumber() {
-        totalProposals++;
-        return totalProposals;
+        return totalProposals.incrementAndGet();
     }
 
     private void broadcastMessage(Message msg) {
@@ -89,13 +88,15 @@ public class Paxos {
 
     public void receivePrepare(Message msg) {
         // if received proposal num > current proposal num
-        if (msg.getProposalNumber() > currentMaxProposal) {
-            currentMaxProposal = msg.getProposalNumber();
+        if (msg.getProposalNumber() > currentMaxProposal.get()) {
+            currentMaxProposal.set(msg.getProposalNumber());
+            logger.info("Current max proposal: " + currentMaxProposal);
 
             // If accepted proposal exists, send promise with accepted proposal. Else, send
             // promise with candidate == null
-            Promise promise = (acceptedProposal != 0) ? new Promise(memberId, currentMaxProposal, acceptedCandidate)
-                    : new Promise(memberId, currentMaxProposal, null);
+            Promise promise = (acceptedProposal != 0)
+                    ? new Promise(memberId, currentMaxProposal.get(), acceptedCandidate)
+                    : new Promise(memberId, currentMaxProposal.get(), null);
 
             // send promise
             logger.info(memberId + " sending PROMISE message to " + msg.getSender() + ", proposal number: "
@@ -110,51 +111,54 @@ public class Paxos {
     }
 
     public void receivePromise(Message msg) {
-        // Record promise
         synchronized (promises) {
             if (msg.getCandidate() != null) {
-                logger.info(memberId + " received PROMISE message from " + msg.getSender() + ",  with candidate: "
+                logger.info(memberId + " received PROMISE message from " + msg.getSender() + ", with candidate: "
                         + msg.getCandidate());
+                promises.put(msg.getSender(), msg.getCandidate());
+            } else {
+                logger.info(
+                        memberId + " received PROMISE message from " + msg.getSender() + ", no candidate specified.");
+                promises.put(msg.getSender(), currentCandidate);
             }
-            // Record promise, candidate null if no accepted proposal or an accepted
-            // candidate
-            promises.put(msg.getSender(), msg.getCandidate());
 
-            if (promises.size() > 4) {
-                // Find promise with candidate not null
-                String proposalCandidate = null;
+            if (promises.size() > 4) { // Majority of PROMISES received
+                // Determine the proposal candidate
+                String proposalCandidate = currentCandidate; // Default to current candidate
+                logger.info("Current candidate: " + currentCandidate);
                 for (String candidate : promises.values()) {
-                    if (candidate != null) {
+                    logger.info("candidate: " + candidate);
+                    if (!candidate.equals("null")) {
                         proposalCandidate = candidate;
                         break;
                     }
                 }
 
-                // Send propose message with candidate
-                Propose propose = new Propose(memberId, currentMaxProposal, proposalCandidate);
-                logger.info(memberId + " broadcasting PROPOSE message, proposal number: " + currentMaxProposal
+                logger.info(memberId + " selected candidate " + proposalCandidate + " for proposal.");
+
+                // Send PROPOSE message
+                Propose propose = new Propose(memberId, currentProposal, proposalCandidate);
+                logger.info(
+                        "Member: " + memberId + ", Proposal: " + currentProposal + ", Candidate: " + proposalCandidate);
+                logger.info(memberId + " broadcasting PROPOSE message, proposal number: " + currentProposal
                         + ", candidate: " + proposalCandidate);
                 broadcastMessage(propose);
-            } else if (promises.size() + 1 > 4) {
-                // Send propose message with current candidate
-                Propose propose = new Propose(memberId, currentMaxProposal, currentCandidate);
-                logger.info(memberId + " broadcasting PROPOSE message, proposal number: " + currentMaxProposal
-                        + ", candidate: " + currentCandidate);
-                broadcastMessage(propose);
+
+                // Reset promises
+                promises.clear();
             }
-            promises.clear(); // Reset promises
         }
     }
 
     public void receivePropose(Message msg) {
-        if (msg.getProposalNumber() >= currentMaxProposal) {
+        if (msg.getProposalNumber() >= currentMaxProposal.get()) {
             // Update max proposal number, accepted proposal and candidate
-            currentMaxProposal = msg.getProposalNumber();
-            acceptedProposal = currentMaxProposal;
+            currentMaxProposal.set(msg.getProposalNumber());
+            acceptedProposal = currentMaxProposal.get();
             acceptedCandidate = msg.getCandidate();
 
             // Send accept message
-            Accept accept = new Accept(memberId, currentMaxProposal, acceptedCandidate);
+            Accept accept = new Accept(memberId, currentMaxProposal.get(), acceptedCandidate);
             logger.info(
                     memberId + " broadcasting ACCEPT message, proposal number: " + currentMaxProposal + ", candidate: "
                             + acceptedCandidate);

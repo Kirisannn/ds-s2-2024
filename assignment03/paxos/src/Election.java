@@ -9,13 +9,23 @@ class Election {
     private static List<Member> members = new ArrayList<Member>();
 
     public static void main(String[] args) throws InterruptedException {
-        test1(); // Test 1
-        sleep(2500); // Wait for test 1 to finish
+        switch (args[0]) {
+            case "1":
+                test1();
+                break;
+            case "2":
+                test2();
+                break;
+            case "3":
+                test3();
+                break;
+            default:
+                logger.error("Invalid test number.");
+                break;
+        }
 
-        test2(); // Test 2
-        sleep(2500); // Wait for test 2 to finish
-
-        test3(); // Test 3
+        logger.info("Exiting...");
+        System.exit(0);
     }
 
     // Start all members

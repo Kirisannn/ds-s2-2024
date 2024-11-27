@@ -52,19 +52,24 @@ public class Member {
     }
 
     public void receive(Message msg) {
+        if (executor.isShutdown()) {
+            logger.warn(memberId + " rejected message because executor is shutting down.");
+            return;
+        }
+
         // If message is not empty and member is responding
         if (working) {
             responding = true;
-            logger.error(memberId + " is working. Responding: " + responding);
+            logger.info(memberId + " is working. Responding: " + responding);
         } else if (!working && !camping) {
             responding = new Random().nextBoolean();
-            logger.error(memberId + " is at home. Responding: " + responding);
+            logger.info(memberId + " is at home. Responding: " + responding);
         } else if (camping) {
             responding = false;
-            logger.error(memberId + " is camping. Responding: " + responding);
+            logger.info(memberId + " is camping. Responding: " + responding);
         } else if (!camping) {
             responding = true;
-            logger.error(memberId + " is not working. Responding: " + responding);
+            logger.info(memberId + " is not working. Responding: " + responding);
         }
         if (msg != null && responding) {
             logger.info(memberId + " received message: " + msg);
