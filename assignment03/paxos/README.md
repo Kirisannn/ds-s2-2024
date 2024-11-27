@@ -316,3 +316,103 @@ Each test case simulates a specific scenario involving different member behaviou
 	    - The system resolves conflicts among the three proposals using the Paxos protocol.
 	    - One of M1, M2, or M3 achieves consensus (majority votes) and becomes the council president.
 	- **Log File**: `Test5.log`
+
+## Testing Tools
+- **Makefile**: Automates the compilation and execution of tests, directing output to log files.
+- **Log Analysis**: Logs are examined to ensure the correct flow of the Paxos algorithm and validate outcomes.
+
+## Validation Criteria
+- **Consensus Achievement**: A candidate is elected if a majority (`N/2 + 1`) agrees.
+- **Conflict Resolution**: In cases with multiple proposers, the system must resolve conflicts through the Paxos protocol.
+- **Fault Tolerance**: The system should operate correctly despite delays, intermittent responses, and partial failures.
+- **Log Evidence**: Log files must demonstrate adherence to the Paxos workflow and successful consensus.
+
+## How to Run Tests
+To execute a test case:
+1. Use the `make testX` command, where `X` is the test number (1-5).
+	- Example: `make test1`
+2. Inspect the generated log file (`TestX.log`) to verify the results.
+3. Repeat for other test cases as required.
+
+## How to Read the Logs
+The log files provide a detailed step-by-step account of the Paxos protocol execution. This guide explains the meaning of the different log entries and the key message types (PREPARE, PROMISE, PROPOSE, ACCEPT, and FAIL) to help you understand the flow of events.
+
+### Message Types
+1. **PREPARE**
+	- **Purpose**: Initiated by a proposer (e.g., M6) to indicate its intent to propose a candidate for presidency. The proposer includes a unique `proposal number`.
+	- **Log Example**: 
+		```
+		Member M6 broadcasting PREPARE message, proposal number: 1853305771
+		```
+	- **Explanation**: M6 sends a PREPARE message to all members to start the consensus process.
+2. **PROMISE**
+	- **Purpose**: A response from an acceptor (e.g., M1, M2, etc.) to a valid PREPARE message, indicating that the acceptor promises not to accept proposals with lower numbers.
+	- **Log Example**:
+		```
+		`[pool-1-thread-1] INFO Election - M1 sending PROMISE message to M6, proposal number: 1853305771`
+		```
+	- **Explanation**: M1 has promised M6 that it will not accept proposals with a number lower than 1853305771.
+3. **PROPOSE**
+	- - **Purpose**: Sent by a proposer (e.g., M6) after receiving a majority of PROMISE messages. The proposer specifies a candidate for presidency.
+	- **Log Example**:
+		```
+		[pool-1-thread-10] INFO Election - M6 broadcasting PROPOSE message, proposal number: 1853305771, candidate: M1
+		```
+	- **Explanation**: M6 broadcasts that M1 is the proposed candidate for presidency.
+4. **ACCEPT**
+	- **Purpose**: Sent by acceptors (e.g., M1, M2, etc.) to indicate agreement with the proposal.
+	- **Log Example**:
+		```
+		[pool-1-thread-6] INFO Election - M2 sending ACCEPT message to M6, proposal number: 1853305771, candidate: M1
+		```
+	- **Explanation**: M2 accepts the proposal from M6 for M1 to become the president.
+5. **FAIL**
+	- **Purpose**: Sent by an acceptor if the proposal number in the PREPARE message is lower than the current maximum proposal number the acceptor has seen.
+	- **Log Example**:
+		```
+		[pool-1-thread-5] INFO Election - M9 sending FAIL message to M6, proposal number: 1853305771
+		```
+	- **Explanation**: M9 rejected the proposal because the proposal number was outdated.
+
+### Key Log Patterns
+1. **Initialisation of Members**
+	Each member starts listening on a designated port:
+	```
+	[main] INFO Election - M1 started listening on port 5001...
+	```
+2. **Broadcasting PREPARE**
+	A proposer initiates the consensus by sending PREPARE messages:
+	```
+	Member M6 broadcasting PREPARE message, proposal number: 1853305771
+	```
+3. **Current Max Proposal**
+	Acceptors compare the received proposal number with their current maximum:
+	```
+	[pool-1-thread-1] INFO Election - Current max proposal of M1: 1853305771
+	```
+4. **Receiving PROMISE Messages**
+	Proposer receives PROMISE responses from acceptors:
+	```
+	[pool-1-thread-2] INFO Election - M6 received PROMISE message from M1, with candidate: null
+	```
+5. **Broadcasting PROPOSE**
+	After receiving a majority of PROMISE messages, the proposer sends a PROPOSE message:
+	```
+	[pool-1-thread-10] INFO Election - M6 broadcasting PROPOSE message, proposal number: 1853305771, candidate: M1
+	```
+6. **Receiving ACCEPT Messages**
+	Acceptors send ACCEPT messages to confirm their agreement:
+	```
+	[pool-1-thread-6] INFO Election - M3 sending ACCEPT message to M6, proposal number: 1853305771, candidate: M1
+	```
+7. **Consensus Reached**
+	Once a majority of ACCEPT messages are received, consensus is achieved:
+	```
+	Consensus reached on proposal: 1853305771, candidate: M1!
+	```
+
+### Tips for Understanding the Logs
+- **Follow the proposal number**: The `proposal number` ensures proposals are unique and helps identify the latest valid proposal.
+- **Look for majority messages**: A majority of PROMISE and ACCEPT messages is required for a proposal to succeed.
+- **Check for FAIL messages**: These indicate conflicts where an older proposal was rejected due to a newer one.
+By understanding these logs, you can trace how Paxos achieves consensus, even under competing proposals or failures.

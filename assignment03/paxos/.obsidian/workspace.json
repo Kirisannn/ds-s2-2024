@@ -4,26 +4,6 @@
     "type": "split",
     "children": [
       {
-        "id": "d29c3bb11ef8d158",
-        "type": "tabs",
-        "children": [
-          {
-            "id": "380f95c3dfa7fb20",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "README.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "README"
-            }
-          }
-        ]
-      },
-      {
         "id": "f208949b07ba1bfb",
         "type": "tabs",
         "children": [
@@ -182,7 +162,7 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "380f95c3dfa7fb20",
+  "active": "9a9ef5d67f04b0c9",
   "lastOpenFiles": [
     "bin/Fail.class",
     "bin/Accept.class",
