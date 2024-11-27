@@ -26,10 +26,7 @@ public class PaxosNode {
     // Output: None
     public void start() {
         // Start listening for incoming messages
-        new Thread(() -> {
-            PaxosServer server = new PaxosServer(this, node_id);
-            server.start();
-        }).start();
+        new Thread(() -> new PaxosServer(this, node_id).start()).start();
 
         System.out.println("Member node: M" + node_id + " started and ready.");
     }

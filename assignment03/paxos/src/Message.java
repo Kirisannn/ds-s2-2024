@@ -31,7 +31,7 @@ public class Message implements Serializable {
     @Override
     public String toString() {
         return String.format(
-                "{\"Sender-ID\": \"%d\", \"Message-Type\": \"%s\", \"Proposal-Number\": \"%d\", \"Candidate\": \"%s\"}",
+                "{\"Sender-ID\": \"%s\", \"Message-Type\": \"%s\", \"Proposal-Number\": \"%d\", \"Candidate\": \"%s\"}",
                 sender_id, msg_type, proposal_number, candidate);
     }
 

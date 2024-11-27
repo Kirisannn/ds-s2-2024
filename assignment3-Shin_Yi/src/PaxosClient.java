@@ -13,7 +13,7 @@ public class PaxosClient {
 
     // Method to send a Paxos message to the recipient node
     // Input: The PaxosMessage
-    // Output: None
+    // Output: None`
     public void sendMessage(PaxosMessage message) {
         try {
             Socket socket = new Socket("localhost", port);

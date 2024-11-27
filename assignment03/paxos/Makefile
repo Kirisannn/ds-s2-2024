@@ -5,4 +5,4 @@ compile:	src/*.java
 	javac -cp $(CLASSPATH) -d $(BUILD_PATH) src/*.java
 
 election:
-	java -cp $(CLASSPATH):$(BUILD_PATH) Election > Test1.log 2>&1
+	java -cp $(CLASSPATH):$(BUILD_PATH) Election

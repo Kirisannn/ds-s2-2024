@@ -20,8 +20,23 @@
               "icon": "lucide-file",
               "title": "README"
             }
+          },
+          {
+            "id": "9a9ef5d67f04b0c9",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "README-2.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "README-2"
+            }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -162,18 +177,20 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "380f95c3dfa7fb20",
+  "active": "9a9ef5d67f04b0c9",
   "lastOpenFiles": [
-    "Test1.log",
-    "Election.java",
+    "bin/Accept.class",
     "bin/Prepare.class",
-    "src/Message.java",
+    "bin/Propose.class",
+    "bin/Fail.class",
+    "bin/Promise.class",
     "bin/Message.class",
-    "src/MEssage.java",
-    "bin/MEssage.class",
-    "bin/Proposer.class",
-    "bin/PrepareMessage.class",
-    "bin/PromiseMessage.class",
-    "bin/Message$PromiseMessage.class"
+    "bin/Listener.class",
+    "bin/Paxos.class",
+    "bin/Member.class",
+    "bin/Election.class",
+    "src/Paxos.java",
+    "README.md",
+    "README-2.md"
   ]
 }

@@ -1,139 +1,118 @@
-import java.util.concurrent.ThreadLocalRandom;
-
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.lang.Thread.sleep;
 
 public class Member {
-    private final String memberId; // Indicates which member this is
-    private final int delay; // The response delay of the member
-    private boolean working = false; // Indicates if M2 is working at the cafe
-    private boolean camping = false; // Indicates if M3 is camping
-    private boolean isProposing; // Indicates if the member is proposing
-    private final Acceptor acceptor; // Acceptor part of the member
-    private Proposer proposer; // Proposer part of the member
-    private Thread proposerThread; // Thread for proposer
-    private Thread acceptorThread; // Thread for acceptor
+    private static final Logger logger = LoggerFactory.getLogger(Election.class);
+    private static final ExecutorService executor = Executors.newFixedThreadPool(10);
+    private final Paxos paxos;
+    private String memberId;
+    private int delay;
+    private boolean working = false;
+    private boolean camping = false;
+    private boolean responding;
 
-    private static final Logger logger = LoggerFactory.getLogger(Proposer.class); // A logger
+    private static final Map<String, Integer> listenerPorts = Map.ofEntries( // All acceptor ports
+            Map.entry("M1", 5001),
+            Map.entry("M2", 5002),
+            Map.entry("M3", 5003),
+            Map.entry("M4", 5004),
+            Map.entry("M5", 5005),
+            Map.entry("M6", 5006),
+            Map.entry("M7", 5007),
+            Map.entry("M8", 5008),
+            Map.entry("M9", 5009));
 
-    public Member(String memberId) {
+    public Member(String memberId, int delay, boolean working, boolean camping) {
         this.memberId = memberId;
-        this.delay = calculateDelay();
-        this.isProposing = toPropose();
-        if (isProposing && !camping) { // Create proposer if member is proposing, and not camping (only if M3)
-            proposer = new Proposer(memberId, delay, working);
-            proposerThread = new Thread(() -> proposer.run(), memberId + "-Proposer-Thread");
+        this.paxos = new Paxos(memberId);
+        this.delay = delay;
+        responding = true;
+        if (working) {
+            this.working = true;
         }
-        acceptor = new Acceptor(memberId, delay, working);
-        acceptorThread = new Thread(() -> acceptor.run(), memberId + "-Acceptor-Thread");
-    }
-
-    /**
-     * Determines the message response delay for this member.
-     *
-     * @return The delay in milliseconds.
-     */
-    private int calculateDelay() {
-        if (memberId.equals("M1")) { // Always instant response
-            return 0;
-        } else if (memberId.equals("M2")) {
-            if (ThreadLocalRandom.current().nextBoolean()) { // M2 is working at the cafe
-                working = true;
-                return 0;
-            }
-            return 5000; // M2 has a 5 second delay
-        } else if (memberId.equals("M3")) {
-            if (ThreadLocalRandom.current().nextBoolean()) { // M3 is camping
-                camping = true;
-                return -1;
-            }
-            return 3000; // M3 has a 3 second delay
-        } else { // M4-M9 have random delays between 0-5 seconds
-            return ThreadLocalRandom.current().nextInt(6) * 1000;
+        if (camping) {
+            this.camping = true;
         }
-    }
-
-    /**
-     * Determines if this member should make proposals.
-     * M1-M3 always make proposals; others do so randomly.
-     *
-     * @return True if the member should make proposals; false otherwise.
-     */
-    private boolean toPropose() {
-        // M1-M3 always propose
-        if (memberId.equals("M1") || memberId.equals("M2") || memberId.equals("M3")) {
-            return true;
-        }
-        return ThreadLocalRandom.current().nextBoolean(); // M4-M9 propose randomly
     }
 
     public void start() {
-        logger.info("Starting member " + memberId + " with delay " + delay + "ms...");
-
-        // Start Acceptor thread
-        acceptorThread.start();
-        logger.info(memberId + " acceptor started.");
-
-        // Start Proposer thread
-        if (isProposing && !camping && proposerThread != null) {
-            proposerThread.start();
-            logger.info(memberId + " proposer started.");
-        }
-
-        // Wait for proposer and acceptor threads to complete
-        while (!Thread.currentThread().isInterrupted()) {
-            try {
-                sleep(1000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                logger.error("InterruptedException in member " + memberId + ":\n", e);
-                break;
-            }
-        }
-
-        // Ensure stopping of threads when exiting
-        stop();
+        // Start listening
+        new Thread(() -> new Listener(this, listenerPorts.get(memberId)).start(), memberId + "-Listener").start();
+        logger.info(memberId + " started listening on port " + listenerPorts.get(memberId) + "...");
     }
 
-    /**
-     * Stops the proposer (if it exists) and acceptor threads, and joins them.
-     */
+    public void beginProposal(String candidate) {
+        paxos.initialiseProposal(candidate);
+    }
+
+    public void receive(Message msg) {
+        // If message is not empty and member is responding
+        if (working) {
+            responding = true;
+            logger.error(memberId + " is working. Responding: " + responding);
+        } else if (!working && !camping) {
+            responding = new Random().nextBoolean();
+            logger.error(memberId + " is at home. Responding: " + responding);
+        } else if (camping) {
+            responding = false;
+            logger.error(memberId + " is camping. Responding: " + responding);
+        } else if (!camping) {
+            responding = true;
+            logger.error(memberId + " is not working. Responding: " + responding);
+        }
+        if (msg != null && responding) {
+            logger.info(memberId + " received message: " + msg);
+            executor.submit(() -> {
+                try {
+                    sleep(delay);
+                } catch (InterruptedException e) {
+                    logger.error(memberId + " encountered InterruptedException while responding: ", e);
+                    Thread.currentThread().interrupt();
+                }
+                processMessage(msg);
+            });
+        } else {
+            logger.warn(memberId + " is not responding.");
+        }
+    }
+
+    private void processMessage(Message msg) {
+        switch (msg.getType()) {
+            case "Prepare":
+                paxos.receivePrepare(msg);
+                break;
+            case "Promise":
+                paxos.receivePromise(msg);
+                break;
+            case "Propose":
+                paxos.receivePropose(msg);
+                break;
+            case "Accept":
+                paxos.receiveAccept(msg);
+                break;
+            case "Fail":
+                logger.error(memberId + " received a Fail message from " + msg.getSender());
+                break;
+            default:
+                logger.error(
+                        memberId + " received an unknown message type: " + msg.getType() + " from " + msg.getSender());
+        }
+    }
+
     public void stop() {
-        logger.info("Stopping member " + memberId + "...");
-
-        // Stop proposer thread
-        if (isProposing && !camping && proposerThread != null) {
-            proposer.stopProposer();
-            try {
-                proposerThread.join();
-                logger.info(memberId + " proposer thread joined.");
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                logger.error("InterruptedException joining proposerThread for " + memberId + ":\n", e);
-            }
-        }
-
-        // Stop acceptor thread
-        acceptor.stop();
-        try {
-            acceptorThread.join();
-            logger.info(memberId + " acceptor thread joined.");
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logger.error("InterruptedException joining acceptorThread" + memberId + ":\n", e);
-        }
-
-        logger.info("Member " + memberId + " stopped.");
+        executor.shutdown();
+        paxos.shutdown();
+        System.out.println("Member node: M" + memberId + " successfully shut down.");
     }
 
     // Getters
-    public String getId() {
+    public String getMemberId() {
         return memberId;
-    }
-
-    public int getDelay() {
-        return delay;
     }
 }
