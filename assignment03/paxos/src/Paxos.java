@@ -12,12 +12,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * The Paxos class implements the Paxos consensus algorithm for distributed
+ * systems.
+ * It coordinates the proposal, acceptance, and consensus phases of Paxos.
+ */
 public class Paxos {
     private static final Logger logger = LoggerFactory.getLogger(Election.class);
     private final ExecutorService executor = Executors.newFixedThreadPool(10);
     private final String memberId;
 
-    private AtomicInteger totalProposals = new AtomicInteger(0);
     private AtomicInteger currentMaxProposal = new AtomicInteger(0);
     private int currentProposal = 0;
     private String currentCandidate = "";
@@ -37,14 +41,30 @@ public class Paxos {
             Map.entry("M8", 5008),
             Map.entry("M9", 5009));
 
+    /**
+     * Constructs a Paxos instance for the given member.
+     *
+     * @param memberId the unique identifier of the member running this Paxos
+     *                 instance.
+     */
     public Paxos(String memberId) {
         this.memberId = memberId;
     }
 
+    /**
+     * Gracefully shuts down the executor used for handling tasks.
+     */
     public void shutdown() {
         executor.shutdown();
     }
 
+    /**
+     * Sends a message to a specified recipient by connecting to their listener
+     * port.
+     *
+     * @param recipient the ID of the recipient (e.g., "M1").
+     * @param msg       the message to send.
+     */
     public void sendTo(String recipient, Message msg) {
         int port = listenerPorts.get(recipient);
         // Send message to recipient
@@ -63,22 +83,40 @@ public class Paxos {
         }
     }
 
+    /**
+     * Initializes a proposal with a specified candidate and broadcasts a PREPARE
+     * message to all members.
+     *
+     * @param candidate the candidate being proposed.
+     */
     public void initialiseProposal(String candidate) {
-        currentProposal = incAndGetProposalNumber();
+        currentProposal = getProposalNumber();
         currentCandidate = candidate;
 
         // Send "Prepare" message to all nodes
         Prepare prepare = new Prepare(memberId, currentProposal);
         System.out.println(
                 "Member " + memberId + " broadcasting PREPARE message, proposal number: " + currentProposal);
-        broadcastMessage(prepare);
+        broadcastMessageToAll(prepare);
     }
 
-    private int incAndGetProposalNumber() {
-        return totalProposals.incrementAndGet();
+    /**
+     * Generates a unique proposal number based on the current system time and
+     * member ID.
+     *
+     * @return a unique proposal number.
+     */
+    private int getProposalNumber() {
+        // return the timestamp of the current system time
+        return (int) System.currentTimeMillis() + Integer.parseInt(memberId.substring(1));
     }
 
-    private void broadcastMessage(Message msg) {
+    /**
+     * Broadcasts a message to all other members in the system.
+     *
+     * @param msg the message to broadcast.
+     */
+    private void broadcastMessageToAll(Message msg) {
         for (int i = 1; i <= 9; i++) {
             if (i != Integer.parseInt(memberId.substring(1))) {
                 sendTo("M" + i, msg);
@@ -86,11 +124,36 @@ public class Paxos {
         }
     }
 
-    public void receivePrepare(Message msg) {
-        // if received proposal num > current proposal num
-        if (msg.getProposalNumber() > currentMaxProposal.get()) {
+    /**
+     * Broadcasts a message only to members that have sent a PROMISE.
+     *
+     * @param msg the message to broadcast.
+     */
+    private void broadcastMessageToPromisors(Message msg) {
+        for (String promisor : promises.keySet()) {
+            sendTo(promisor, msg);
+        }
+    }
+
+    /**
+     * Handles a received PREPARE message.
+     * Responds with a PROMISE if the proposal number is valid, otherwise sends a
+     * FAIL.
+     *
+     * @param msg the PREPARE message received.
+     */
+    public synchronized void receivePrepare(Message msg) {
+        if (msg.getProposalNumber() <= currentMaxProposal.get()) { // else send fail
+            logger.info(memberId + " rejecting lower proposal: " + msg.getProposalNumber());
+            Fail fail = new Fail(memberId);
+            logger.info(memberId + " sending FAIL message to " + msg.getSender() + ", proposal number: "
+                    + currentMaxProposal);
+            sendTo(msg.getSender(), fail);
+            return;
+        } else if (msg.getProposalNumber() > currentMaxProposal.get()) {
+            // if received proposal num > current proposal num
             currentMaxProposal.set(msg.getProposalNumber());
-            logger.info("Current max proposal: " + currentMaxProposal);
+            logger.info("Current max proposal of " + memberId + ": " + currentMaxProposal);
 
             // If accepted proposal exists, send promise with accepted proposal. Else, send
             // promise with candidate == null
@@ -107,9 +170,17 @@ public class Paxos {
             logger.info(memberId + " sending FAIL message to " + msg.getSender() + ", proposal number: "
                     + currentMaxProposal);
             sendTo(msg.getSender(), fail);
+            return;
         }
     }
 
+    /**
+     * Handles a received PROMISE message.
+     * Tracks received PROMISES and, once a majority is reached, sends a PROPOSE
+     * message.
+     *
+     * @param msg the PROMISE message received.
+     */
     public void receivePromise(Message msg) {
         synchronized (promises) {
             if (msg.getCandidate() != null) {
@@ -127,7 +198,7 @@ public class Paxos {
                 String proposalCandidate = currentCandidate; // Default to current candidate
                 logger.info("Current candidate: " + currentCandidate);
                 for (String candidate : promises.values()) {
-                    logger.info("candidate: " + candidate);
+                    // logger.info("candidate: " + candidate);
                     if (!candidate.equals("null")) {
                         proposalCandidate = candidate;
                         break;
@@ -142,7 +213,9 @@ public class Paxos {
                         "Member: " + memberId + ", Proposal: " + currentProposal + ", Candidate: " + proposalCandidate);
                 logger.info(memberId + " broadcasting PROPOSE message, proposal number: " + currentProposal
                         + ", candidate: " + proposalCandidate);
-                broadcastMessage(propose);
+
+                // Broadcast PROPOSE message to promisors
+                broadcastMessageToPromisors(propose);
 
                 // Reset promises
                 promises.clear();
@@ -150,6 +223,13 @@ public class Paxos {
         }
     }
 
+    /**
+     * Handles a received PROPOSE message.
+     * Responds with an ACCEPT message if the proposal number is valid, otherwise
+     * sends a FAIL.
+     *
+     * @param msg the PROPOSE message received.
+     */
     public void receivePropose(Message msg) {
         if (msg.getProposalNumber() >= currentMaxProposal.get()) {
             // Update max proposal number, accepted proposal and candidate
@@ -160,27 +240,38 @@ public class Paxos {
             // Send accept message
             Accept accept = new Accept(memberId, currentMaxProposal.get(), acceptedCandidate);
             logger.info(
-                    memberId + " broadcasting ACCEPT message, proposal number: " + currentMaxProposal + ", candidate: "
+                    memberId + " sending ACCEPT message to " + msg.getSender() + ", proposal number: "
+                            + currentMaxProposal + ", candidate: "
                             + acceptedCandidate);
-            broadcastMessage(accept);
-
+            sendTo(msg.getSender(), accept);
         } else {
             // Send fail message
             Fail fail = new Fail(memberId);
-            logger.info(memberId + " broadcasting FAIL message, proposal number: " + currentMaxProposal);
-            broadcastMessage(fail);
+            logger.info(memberId + " sending FAIL message to " + msg.getSender() + ", proposal number: "
+                    + currentMaxProposal);
+            sendTo(msg.getSender(), fail);
         }
     }
 
-    public void receiveAccept(Message msg) {
+    /**
+     * Handles a received ACCEPT message.
+     * Tracks ACCEPT messages and determines if a consensus is reached.
+     *
+     * @param msg the ACCEPT message received.
+     */
+    public synchronized void receiveAccept(Message msg) {
         // Record accept
         synchronized (accepts) {
             // Put candidate and increment count
             accepts.computeIfAbsent(msg.getCandidate(), count -> new AtomicInteger(0)).incrementAndGet();
 
             if (accepts.get(msg.getCandidate()).get() > 4) {
-                logger.info("Consensus reached on proposal: " + msg.getProposalNumber() + ", candidate: "
-                        + msg.getCandidate() + "! New president: " + msg.getCandidate());
+                logger.info("\n\nConsensus reached on proposal: " + msg.getProposalNumber() + ", candidate: "
+                        + msg.getCandidate() + "!");
+
+                // Exit
+                shutdown();
+                System.exit(0);
             }
         }
     }

@@ -1,6 +1,5 @@
 # Compile all the Java files
 all: 
-	mkdir bin
 	javac -d bin src/*.java
 
 # Run the 1st test

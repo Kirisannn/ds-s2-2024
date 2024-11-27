@@ -1,164 +1,156 @@
-# Distributed Systems Assignment04 - PAXOS Council Election
-The assignment asks for the implementation of PAXOS decision-making algorithm to facilitate a Council Election for president.
+___
+# Assignment Overview
+## Purpose
+This project implements a **Paxos voting protocol** to simulate a fault-tolerant election for the Adelaide Suburbs Council president. The goal is to achieve distributed consensus despite challenges such as delayed responses, network failures, and simultaneous proposals.
 
-The PAXOS algorithm will be implemented as described in the following sections.
+Nine council members (M1–M9) exhibit varied behaviours:
+- **M1**: Always responsive.
+- **M2**: Alternates between poor and instant connectivity.
+- **M3**: Occasionally unreachable.
+- **M4–M9**: Respond with variable delays.
 
-# Phases
-In general, the algorithm consists of two phases, "PREPARE-PROMISE" and "PROPOSE-ACCEPT".
-## Phase 1: PREPARE-PROMISE
-A proposer receives a consensus request for a **VALUE** from a client. It creates a unique proposal number **`ID`**, and sends a **PREPARE(ID)** message to at least a majority of acceptors.
+The protocol ensures reliable voting outcomes through socket-based communication, managing failures, and maintaining resilience in distributed systems. Testing validates its correctness across multiple scenarios.
 
-Each acceptor that receives the **PREPARE** message looks at the ID in the message and decides:
-1. Is this ID bigger than any round I have previously received?
-2. If **yes**:
-	- Store **ID number**: `max_id = ID`
-	- Respond with **"promise"** message.
-3. If **no**:
-	- Do not respond **or** respond with **"fail"** message.
-## Phase 2: PROPOSE-ACCEPT
+## Tech Stack
+- **Development Language & Version:** OpenJDK-22.0.1
+- **External Libraries:**
+	- Google Java serialisation/de-serialisation for JSON (GSON)
+		- Packages: `gson-2.11.0.jar`
+	- Simple Logging Facade for Java (SLF4J)
+		- Packages: `slf4j-api-2.0.16.jar` & `slf4j-simple-2.0.16.jar`
 
-# Edgy Behaviours
-1. When a proposer ***i*** has sent a *prepare message* to acceptor ***j***, if ***j*** has *accepted (phase 2)* a higher proposal number from ***k***, ***j*** will *promise* ***i*** with the higher proposal from ***k*** back to ***i***. Then, ***i*** will *propose* to ***j*** with the new *higher proposal*. Proceed as per normal.
-2. When a proposer ***i*** has sent a *prepare message* to acceptor ***j***, if ***j*** has *promised (phase 1)* a higher proposal number from ***k***, ***j*** will send a *fail message* to ***i***. If ***i*** does not receive *promise* from majority members, it **retries** *prepare* to all members with *new higher proposal ID*.
-3. **M1** always responds on first attempt (never fails), responds to EVERY message from every other member.
-4. **M2**: If M2 not at work (cafe), always takes 5 seconds to respond to any message, it always responds to first message, thereafter any further proposals, randomly (true/false) decide to promise/accept the new proposals. If M2 AT work, follow M1 behaviours.
-5. **M3**: Responds afters 3 seconds to any message, ONLY AFTER if randomly decided to respond to message.
-6. **M4-M9**: Randomly selects 0-5 seconds delay the first time the councillor was created. Responds for this decided delay for all messages in the current election. Proposal value is randomly selected the first time the councillor created. selects between **M1-M9**
-7. **M1-M3** will always propose themselves for their first prepare.
-8. Each councillor should have a designated port for **Acceptor** & **Proposer**. I.e. **M1** gets `propose_port=5000` & `accept_port=5001`.
+---
+# Setup & Run
+## Prerequisites
+Before setting up and running the application, ensure the following prerequisites are met:
+1. **Java Development Kit (JDK):**
+	- Install [OpenJDK 22.0.1](https://openjdk.org/) or a compatible version.
+	- Verify installation by running `java --version` and `javac --version` in your terminal.
+2. **Build Tool (Make):**
+	- Ensure `make` is installed for building and running the project.
+	- Verify installation by running `make --version`.
+3. **External Libraries:**
+	- Ensure the follows JAR files are located in `lib` directory of the project.
+		- `gson-2.11.0.jar`
+		- `slf4j-api-2.0.16.jar`
+		- `slf4j-simple-2.0.16.jar`
+4. **Network Configuration:**
+	- Ensure that the system allows communication on ports **5001–5009** for socket-based communication.
 
-# Elements
-*Note: `ctrl+f`  "uncomment" and remove change code back to random delays and cafe/camping.*
+## Setup
+Follow these steps to set up and prepare the project for execution:
+1. **Ensure the following directory structure:**
+	```
+	.
+	├── src # Contains all source files 
+	├── lib # Contains all external libraries (JAR files)
+	├── bin # Contains all compiled classes 
+	└── Makefile # Build & run instructions
+	```
+2. **Check dependencies:**
+	- Ensure external library JARs are located in `bin/`
+	- Otherwise, download the required JARs and move to `lib/`
+3. **Ensure open ports:**
+	- Open ports **5001–5009** on your system to allow socket-based communication between nodes.
+4. **Build the Project:**
+	- Navigate to the project root in your terminal and run the following command:
+	```
+	make compile
+	```
+	- This will compile all Java source files in the `src` directory and place the compiled `.class` files in the `bin` directory.
+5. **Verify Setup:**
+	- Ensure there are no compilation errors. Check the `bin` directory for generated `.class` files.
 
-## Message - Done
-- Contains 5 different child message classes.
-	1. **Prepare**
-	2. **Promise**
-	3. **Propose**
-	4. **Accept**
-	5. **Fail**
-	6. **Result**
-	7. **Stop**
+After completing these steps, proceed to the "Run" section to execute specific test cases.
+## Run
+To execute the project and observe the results for different scenarios, follow these steps:
+1. **Navigate to the Project Root:**
+	- Open a terminal and ensure you're in the root directory of the project.
+2. **Run Specific Tests:**
+3. **View Logs:**
+4. **Clean Up (Optional):**
 
-## Member - In Progress
-- Contains a `proposer` & a `acceptor`
-- **Steps:**
-	1. Set delay
-	2. Decide if working or camping
-	3. Decide if to propose
-	4. Create `proposer` & `acceptor`
-	5. Create and start `proposer` & `acceptor` threads
-	6. Stop early if majority consensus reached.
-	7. Send elected president to `Election`
-	
-- **Methods:**
-	- **`void`** `setDelay()`
-	- **`void`** `toPropose()`
-	- **`void`** `setWorkingCamping`
-	- **`void`** `createProposer()`
-		- Only done if `proposing = true`
-	- **`void`** `createAcceptor()`
-	- **`void`** `startThreads()`
-	- **`void`** `stop()`
-	
-- **Attributes:**
-	- **`String`** `member_id`
-	- **`Proposer`** `proposer`
-	- **`Acceptor`** `acceptor`
-	- **`Random`** `rand = new Random()`
-	- **`boolean`** `proposing`
-	- **`boolean`** `working = false`
-	- **`boolean`** `camping = false`
-	- **`int`**`delay`
-	- **`Thread`** `proposeThread`
-	- **`Thread`** `acceptThread`
-	
-- **Pseudocode:**
-	1. Check which member it is.
-		- If M1, `delay = 0`
-		- If M2, randomly select if at home or at cafe (working) 
-			- `working = rand.nextBoolean()`
-			- If at home, `delay = 5000`
-			- If at cafe (working), `delay = 0`
-		- If M3, randomly select if at home or camping
-			- `camping = rand.nextBoolean()`
-			- If at home, `delay = 3000`
-			- If at camping, `delay = 0`
-		- If M4-M9, `delay = rand.nextInt(6) * 1000`, can be instant
-	2. Decide if member will be proposing
-		- If proposing, create `proposer`
-	3. Create `acceptor`
-	4. Create `proposerThread` & `acceptorThread`, then start them
+---
+# Design Overview
+## Architecture
 
-## Proposer - In Progress
-- **Attributes:**
-	- **`static final AtomicInteger`** `proposalCount = new AtomicInteger(0)`
-	- **`int`** `currentProposal`
-	- **`AtomicIntger`** `acceptedCount`
-	- **`String`** `currentCandidate`
-	- **`List<int>`** `acceptorPorts`
-		- List of all the acceptor ports for each member.
-	
-- **Methods:**
-	- **`void`** `run()`
-		- The main method for the class.
-		- While consensus not reached
-			- Reset accepted count to 0
-			- Gets a new proposal number.
-			- Gets a new candidate if not yet assigned
-			- Sends a prepare message
-			- Receives response (FAIL/PROMISE)
-			- Sends a propose message
-			- Receives respond (FAIL/ACCEPT)
-			-  Break out of while loop when consensus reached, `acceptedCount = 5`
-		- Call `consensusReached()`
-	- **`int`** `getProposalNumber()`
-	- **`int`** `getCandidate()`
-		- Returns the `currentCandidate`.
-	- **`void`** `prepare()`
-		- Sends a `prepare` message to a member
-	- **`void`** `handlePrepare()`
-	- **`void`** `propose()`
-	- **`void`** `handleAccept()`
-	- **`void`** `consensusReached()` 
-		- Once majority consensus reached
-			- Sends kill messages to all other members' `acceptor`.
-			- Send to `Election` the decided president. 
-			- Sends kill message to its own `acceptor`.
-## Acceptor - In Progress
-- **Attributes:**
-	- **`AtomicInteger`** `maxProposalId`
-	- **`String`** `acceptedCandidate`
-	- **`boolean`** `proposalAccepted`
-	
-- **Methods:**
-	- **`void`** `run()`
-		- Main class method
-		- While true
-			- Accept incoming connections
-			- If `proposalId > maxProposalId`, `maxProposalId = proposalId` and respond PROMISE(`maxProposalId`)
-			- Else if `proposalId <= maxProposalId`,
-				- If `proposalAccepted == true`, respond PROMISE(`maxProposalId`, `acceptedCandidate`)
-				- else if `proposalAccepted == false`, respond FAIL
-	- 
 
-## Election - In Progress
-- **Attributes:**
-	- **`String`** `president = null`
-	- **`List<Member>`** `members` 
-	- **`List<Thread>`** `memberThreads`
-	
-- **Methods:**
-	- **`void`** `createMembers()`
-		- Create all the `Member` objects
-		- Saves them to `members` 
-	- **`void`** `createMemberThreads()`
-		- Create member threads, save them to `memberThreads`
-	- **`void`** `startMembers()`
-		- Starts all the member threads.
-	- **`void`** `stopMember(String memberId)`
-		- Stops a member's thread, which stops the member's `proposer` and `acceptor`
-	- **`void`** `electPresident()`
-		- Thread that listens to incoming connections
-		- Receives the message containing the final voted president
-		- Sets `president` to the new voted president
+## Workflow
+
+---
+# Class Descriptions
+## 1. Paxos
+### Purpose
+
+
+### Attributes
+
+
+### Methods
+
+
+## 2. Election
+### Purpose
+
+
+### Attributes
+
+
+### Methods
+
+
+## 3. Member
+### Purpose
+
+
+### Attributes
+
+
+### Methods
+
+
+## 4. Listener
+### Purpose
+
+
+### Attributes
+
+
+### Methods
+
+
+## 5. Message
+### Purpose
+
+
+### Attributes
+
+
+### Methods
+
+---
+# Testing
+## Case 1: Single Proposer, Instant Responses
+- **Objective**
+- **Setup**
+- **Expected Outcome**
+
+## Case 2: Double Proposers, Instant Responses
+- **Objective**
+- **Setup**
+- **Expected Outcome**
+
+## Case 3: Single Proposer, Varied delays & Responsiveness
+- **Objective**
+- **Setup**
+- **Expected Outcome**
+
+## Case 4: Double Proposers, Varied delays & Responsiveness
+- **Objective**
+- **Setup**
+- **Expected Outcome**
+
+## Case 5: Triple Proposers, Varied delays & Responsiveness
+- **Objective**
+- **Setup**
+- **Expected Outcome**

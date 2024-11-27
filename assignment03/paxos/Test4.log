@@ -1,0 +1,99 @@
+[main] INFO Election - Starting test 4: 2 Proposers, delays & responsiveness are varied.
+[main] INFO Election - M1 started listening on port 5001...
+[main] INFO Election - M2 started listening on port 5002...
+[main] INFO Election - M3 started listening on port 5003...
+[main] INFO Election - M4 started listening on port 5004...
+[main] INFO Election - M5 started listening on port 5005...
+[main] INFO Election - M6 started listening on port 5006...
+[main] INFO Election - M7 started listening on port 5007...
+[main] INFO Election - M8 started listening on port 5008...
+[main] INFO Election - M9 started listening on port 5009...
+Member M6 broadcasting PREPARE message, proposal number: 1845888630
+Member M1 broadcasting PREPARE message, proposal number: 1845888625
+[Thread-1] WARN Election - M1 is not responding.
+[Thread-0] INFO Election - M2 received message: {"Sender-ID": "M1", "Message-Type": "Prepare", "Proposal-Number": "1845888625", "Candidate": "null"}
+[Thread-2] WARN Election - M3 is not responding.
+[Thread-3] WARN Election - M2 is not responding.
+[Thread-4] WARN Election - M3 is not responding.
+[Thread-5] INFO Election - M4 received message: {"Sender-ID": "M1", "Message-Type": "Prepare", "Proposal-Number": "1845888625", "Candidate": "null"}
+[Thread-6] INFO Election - M4 received message: {"Sender-ID": "M6", "Message-Type": "Prepare", "Proposal-Number": "1845888630", "Candidate": "null"}
+[Thread-7] INFO Election - M5 received message: {"Sender-ID": "M1", "Message-Type": "Prepare", "Proposal-Number": "1845888625", "Candidate": "null"}
+[pool-1-thread-2] INFO Election - Current max proposal of M4: 1845888625
+[pool-1-thread-4] INFO Election - Current max proposal of M5: 1845888625
+[Thread-9] INFO Election - M6 received message: {"Sender-ID": "M1", "Message-Type": "Prepare", "Proposal-Number": "1845888625", "Candidate": "null"}
+[Thread-8] INFO Election - M5 received message: {"Sender-ID": "M6", "Message-Type": "Prepare", "Proposal-Number": "1845888630", "Candidate": "null"}
+[pool-1-thread-4] INFO Election - M5 sending PROMISE message to M1, proposal number: 1845888625
+[pool-1-thread-2] INFO Election - M4 sending PROMISE message to M1, proposal number: 1845888625
+[Thread-10] INFO Election - M1 received message: {"Sender-ID": "M5", "Message-Type": "Promise", "Proposal-Number": "1845888625", "Candidate": "null"}
+[Thread-11] INFO Election - M1 received message: {"Sender-ID": "M4", "Message-Type": "Promise", "Proposal-Number": "1845888625", "Candidate": "null"}
+[pool-1-thread-7] INFO Election - M1 received PROMISE message from M5, with candidate: null
+[pool-1-thread-8] INFO Election - M1 received PROMISE message from M4, with candidate: null
+[pool-1-thread-1] INFO Election - Current max proposal of M2: 1845888625
+[pool-1-thread-1] INFO Election - M2 sending PROMISE message to M1, proposal number: 1845888625
+[Thread-12] INFO Election - M7 received message: {"Sender-ID": "M6", "Message-Type": "Prepare", "Proposal-Number": "1845888630", "Candidate": "null"}
+[Thread-13] INFO Election - M7 received message: {"Sender-ID": "M1", "Message-Type": "Prepare", "Proposal-Number": "1845888625", "Candidate": "null"}
+[Thread-14] WARN Election - M1 is not responding.
+[pool-1-thread-6] INFO Election - Current max proposal of M5: 1845888630
+[pool-1-thread-6] INFO Election - M5 sending PROMISE message to M6, proposal number: 1845888630
+[pool-1-thread-3] INFO Election - Current max proposal of M4: 1845888630
+[pool-1-thread-3] INFO Election - M4 sending PROMISE message to M6, proposal number: 1845888630
+[Thread-15] INFO Election - M6 received message: {"Sender-ID": "M5", "Message-Type": "Promise", "Proposal-Number": "1845888630", "Candidate": "null"}
+[Thread-16] INFO Election - M6 received message: {"Sender-ID": "M4", "Message-Type": "Promise", "Proposal-Number": "1845888630", "Candidate": "null"}
+[pool-1-thread-5] INFO Election - Current max proposal of M6: 1845888625
+[pool-1-thread-5] INFO Election - M6 sending PROMISE message to M1, proposal number: 1845888625
+[Thread-17] INFO Election - M1 received message: {"Sender-ID": "M6", "Message-Type": "Promise", "Proposal-Number": "1845888625", "Candidate": "null"}
+[Thread-18] INFO Election - M8 received message: {"Sender-ID": "M1", "Message-Type": "Prepare", "Proposal-Number": "1845888625", "Candidate": "null"}
+[pool-1-thread-4] INFO Election - M1 received PROMISE message from M6, with candidate: null
+[Thread-19] INFO Election - M8 received message: {"Sender-ID": "M6", "Message-Type": "Prepare", "Proposal-Number": "1845888630", "Candidate": "null"}
+[Thread-21] INFO Election - M9 received message: {"Sender-ID": "M1", "Message-Type": "Prepare", "Proposal-Number": "1845888625", "Candidate": "null"}
+[Thread-20] INFO Election - M9 received message: {"Sender-ID": "M6", "Message-Type": "Prepare", "Proposal-Number": "1845888630", "Candidate": "null"}
+[pool-1-thread-7] INFO Election - M6 received PROMISE message from M5, with candidate: null
+[pool-1-thread-8] INFO Election - M6 received PROMISE message from M4, with candidate: null
+[pool-1-thread-9] INFO Election - Current max proposal of M7: 1845888630
+[pool-1-thread-9] INFO Election - M7 sending PROMISE message to M6, proposal number: 1845888630
+[pool-1-thread-4] INFO Election - Current max proposal of M9: 1845888625
+[pool-1-thread-4] INFO Election - M9 sending PROMISE message to M1, proposal number: 1845888625
+[Thread-22] INFO Election - M6 received message: {"Sender-ID": "M7", "Message-Type": "Promise", "Proposal-Number": "1845888630", "Candidate": "null"}
+[Thread-23] WARN Election - M1 is not responding.
+[pool-1-thread-2] INFO Election - Current max proposal of M8: 1845888625
+[pool-1-thread-2] INFO Election - M8 sending PROMISE message to M1, proposal number: 1845888625
+[pool-1-thread-6] INFO Election - Current max proposal of M9: 1845888630
+[Thread-24] WARN Election - M1 is not responding.
+[pool-1-thread-10] INFO Election - M7 rejecting lower proposal: 1845888625
+[pool-1-thread-6] INFO Election - M9 sending PROMISE message to M6, proposal number: 1845888630
+[pool-1-thread-10] INFO Election - M7 sending FAIL message to M1, proposal number: 1845888630
+[Thread-25] INFO Election - M6 received message: {"Sender-ID": "M9", "Message-Type": "Promise", "Proposal-Number": "1845888630", "Candidate": "null"}
+[Thread-26] WARN Election - M1 is not responding.
+[pool-1-thread-3] INFO Election - M6 received PROMISE message from M7, with candidate: null
+[pool-1-thread-1] INFO Election - Current max proposal of M8: 1845888630
+[pool-1-thread-1] INFO Election - M8 sending PROMISE message to M6, proposal number: 1845888630
+[Thread-27] INFO Election - M6 received message: {"Sender-ID": "M8", "Message-Type": "Promise", "Proposal-Number": "1845888630", "Candidate": "null"}
+[pool-1-thread-5] INFO Election - M6 received PROMISE message from M9, with candidate: null
+[pool-1-thread-7] INFO Election - M6 received PROMISE message from M8, with candidate: null
+[pool-1-thread-7] INFO Election - Current candidate: M2
+[pool-1-thread-7] INFO Election - candidate: null
+[pool-1-thread-7] INFO Election - candidate: null
+[pool-1-thread-7] INFO Election - candidate: null
+[pool-1-thread-7] INFO Election - candidate: null
+[pool-1-thread-7] INFO Election - candidate: null
+[pool-1-thread-7] INFO Election - M6 selected candidate M2 for proposal.
+[pool-1-thread-7] INFO Election - Member: M6, Proposal: 1845888630, Candidate: M2
+[pool-1-thread-7] INFO Election - M6 broadcasting PROPOSE message, proposal number: 1845888630, candidate: M2
+[Thread-28] INFO Election - M4 received message: {"Sender-ID": "M6", "Message-Type": "Propose", "Proposal-Number": "1845888630", "Candidate": "M2"}
+[Thread-29] INFO Election - M5 received message: {"Sender-ID": "M6", "Message-Type": "Propose", "Proposal-Number": "1845888630", "Candidate": "M2"}
+[Thread-30] INFO Election - M7 received message: {"Sender-ID": "M6", "Message-Type": "Propose", "Proposal-Number": "1845888630", "Candidate": "M2"}
+[pool-1-thread-8] INFO Election - M4 sending ACCEPT message to M6, proposal number: 1845888630, candidate: M2
+[pool-1-thread-9] INFO Election - M5 sending ACCEPT message to M6, proposal number: 1845888630, candidate: M2
+[Thread-31] INFO Election - M6 received message: {"Sender-ID": "M4", "Message-Type": "Accept", "Proposal-Number": "1845888630", "Candidate": "M2"}
+[Thread-32] INFO Election - M6 received message: {"Sender-ID": "M5", "Message-Type": "Accept", "Proposal-Number": "1845888630", "Candidate": "M2"}
+[Thread-33] INFO Election - M8 received message: {"Sender-ID": "M6", "Message-Type": "Propose", "Proposal-Number": "1845888630", "Candidate": "M2"}
+[Thread-34] INFO Election - M9 received message: {"Sender-ID": "M6", "Message-Type": "Propose", "Proposal-Number": "1845888630", "Candidate": "M2"}
+[pool-1-thread-4] INFO Election - M7 sending ACCEPT message to M6, proposal number: 1845888630, candidate: M2
+[Thread-35] INFO Election - M6 received message: {"Sender-ID": "M7", "Message-Type": "Accept", "Proposal-Number": "1845888630", "Candidate": "M2"}
+[pool-1-thread-10] INFO Election - M9 sending ACCEPT message to M6, proposal number: 1845888630, candidate: M2
+[Thread-36] INFO Election - M6 received message: {"Sender-ID": "M9", "Message-Type": "Accept", "Proposal-Number": "1845888630", "Candidate": "M2"}
+[pool-1-thread-6] INFO Election - M8 sending ACCEPT message to M6, proposal number: 1845888630, candidate: M2
+[Thread-37] INFO Election - M6 received message: {"Sender-ID": "M8", "Message-Type": "Accept", "Proposal-Number": "1845888630", "Candidate": "M2"}
+[pool-1-thread-9] INFO Election - 
+
+Consensus reached on proposal: 1845888630, candidate: M2!

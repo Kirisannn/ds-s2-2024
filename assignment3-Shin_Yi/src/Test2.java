@@ -43,6 +43,7 @@ public class Test2 {
         executor.shutdown();
 
         System.out.println("---Test 2: Concurrent Proposals Completed.---");
+        System.exit(0);
     }
 
     public static void main(String[] args) throws InterruptedException {

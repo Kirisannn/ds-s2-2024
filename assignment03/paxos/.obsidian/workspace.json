@@ -20,23 +20,28 @@
               "icon": "lucide-file",
               "title": "README"
             }
-          },
+          }
+        ]
+      },
+      {
+        "id": "f208949b07ba1bfb",
+        "type": "tabs",
+        "children": [
           {
             "id": "9a9ef5d67f04b0c9",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "README-2.md",
-                "mode": "source",
+                "file": "README.md",
+                "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "README-2"
+              "title": "README"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -177,15 +182,15 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "9a9ef5d67f04b0c9",
+  "active": "380f95c3dfa7fb20",
   "lastOpenFiles": [
-    "bin/Accept.class",
-    "bin/Prepare.class",
-    "bin/Propose.class",
     "bin/Fail.class",
+    "bin/Accept.class",
+    "bin/Propose.class",
     "bin/Promise.class",
-    "bin/Message.class",
+    "bin/Prepare.class",
     "bin/Listener.class",
+    "bin/Message.class",
     "bin/Paxos.class",
     "bin/Member.class",
     "bin/Election.class",

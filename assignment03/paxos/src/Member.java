@@ -28,6 +28,15 @@ public class Member {
             Map.entry("M8", 5008),
             Map.entry("M9", 5009));
 
+    /**
+     * Constructs a Member with the specified configurations.
+     *
+     * @param memberId the unique identifier for the member (e.g., "M1").
+     * @param delay    the delay in milliseconds before responding to a message.
+     * @param working  whether the member is actively participating in the election
+     *                 process.
+     * @param camping  whether the member is unreachable (camping).
+     */
     public Member(String memberId, int delay, boolean working, boolean camping) {
         this.memberId = memberId;
         this.paxos = new Paxos(memberId);
@@ -41,16 +50,32 @@ public class Member {
         }
     }
 
+    /**
+     * Starts the member by initializing its listener.
+     * The listener runs on a separate thread and listens for incoming messages.
+     */
     public void start() {
         // Start listening
         new Thread(() -> new Listener(this, listenerPorts.get(memberId)).start(), memberId + "-Listener").start();
         logger.info(memberId + " started listening on port " + listenerPorts.get(memberId) + "...");
     }
 
+    /**
+     * Initiates a proposal for the specified candidate using the Paxos algorithm.
+     *
+     * @param candidate the identifier of the candidate being proposed (e.g., "M1").
+     */
     public void beginProposal(String candidate) {
         paxos.initialiseProposal(candidate);
     }
 
+    /**
+     * Processes an incoming message. Determines whether the member will respond
+     * based on its state.
+     * If responding, the message is processed asynchronously.
+     *
+     * @param msg the incoming message to be processed.
+     */
     public void receive(Message msg) {
         if (executor.isShutdown()) {
             logger.warn(memberId + " rejected message because executor is shutting down.");
@@ -60,19 +85,19 @@ public class Member {
         // If message is not empty and member is responding
         if (working) {
             responding = true;
-            logger.info(memberId + " is working. Responding: " + responding);
+            // logger.info(memberId + " is working. Responding: " + responding);
         } else if (!working && !camping) {
             responding = new Random().nextBoolean();
-            logger.info(memberId + " is at home. Responding: " + responding);
+            // logger.info(memberId + " is at home. Responding: " + responding);
         } else if (camping) {
             responding = false;
-            logger.info(memberId + " is camping. Responding: " + responding);
+            // logger.info(memberId + " is camping. Responding: " + responding);
         } else if (!camping) {
             responding = true;
-            logger.info(memberId + " is not working. Responding: " + responding);
+            // logger.info(memberId + " is not working. Responding: " + responding);
         }
         if (msg != null && responding) {
-            logger.info(memberId + " received message: " + msg);
+            // logger.info(memberId + " received message: " + msg);
             executor.submit(() -> {
                 try {
                     sleep(delay);
@@ -87,6 +112,12 @@ public class Member {
         }
     }
 
+    /**
+     * Processes a message based on its type and delegates to the appropriate Paxos
+     * method.
+     *
+     * @param msg the incoming message to be processed.
+     */
     private void processMessage(Message msg) {
         switch (msg.getType()) {
             case "Prepare":
@@ -110,13 +141,21 @@ public class Member {
         }
     }
 
+    /**
+     * Stops the member by shutting down its executor service and the associated
+     * Paxos instance.
+     */
     public void stop() {
         executor.shutdown();
         paxos.shutdown();
-        System.out.println("Member node: M" + memberId + " successfully shut down.");
+        System.out.println("Member node: " + memberId + " successfully shut down.");
     }
 
-    // Getters
+    /**
+     * Returns the member's unique identifier.
+     *
+     * @return the member ID.
+     */
     public String getMemberId() {
         return memberId;
     }

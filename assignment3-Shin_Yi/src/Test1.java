@@ -40,6 +40,7 @@ public class Test1 {
         stopNodes(nodes);
 
         System.out.println("---Test 1: Immediate Responses Completed.---");
+        System.exit(0);
     }
 
     public static void main(String[] args) throws InterruptedException {
