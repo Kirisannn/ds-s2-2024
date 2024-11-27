@@ -8,37 +8,37 @@
 [main] INFO Election - M7 started listening on port 5007...
 [main] INFO Election - M8 started listening on port 5008...
 [main] INFO Election - M9 started listening on port 5009...
-Member M6 broadcasting PREPARE message, proposal number: 1847501865
-[pool-1-thread-1] INFO Election - Current max proposal of M1: 1847501865
-[pool-1-thread-1] INFO Election - M1 sending PROMISE message to M6, proposal number: 1847501865
+Member M6 broadcasting PREPARE message, proposal number: 1853305771
+[pool-1-thread-1] INFO Election - Current max proposal of M1: 1853305771
+[pool-1-thread-1] INFO Election - M1 sending PROMISE message to M6, proposal number: 1853305771
 [pool-1-thread-2] INFO Election - M6 received PROMISE message from M1, with candidate: null
-[pool-1-thread-3] INFO Election - Current max proposal of M2: 1847501865
-[pool-1-thread-3] INFO Election - M2 sending PROMISE message to M6, proposal number: 1847501865
+[pool-1-thread-3] INFO Election - Current max proposal of M2: 1853305771
+[pool-1-thread-3] INFO Election - M2 sending PROMISE message to M6, proposal number: 1853305771
 [pool-1-thread-4] INFO Election - M6 received PROMISE message from M2, with candidate: null
-[pool-1-thread-5] INFO Election - Current max proposal of M3: 1847501865
-[pool-1-thread-5] INFO Election - M3 sending PROMISE message to M6, proposal number: 1847501865
+[pool-1-thread-5] INFO Election - Current max proposal of M3: 1853305771
+[pool-1-thread-5] INFO Election - M3 sending PROMISE message to M6, proposal number: 1853305771
 [pool-1-thread-6] INFO Election - M6 received PROMISE message from M3, with candidate: null
-[pool-1-thread-7] INFO Election - Current max proposal of M4: 1847501865
-[pool-1-thread-7] INFO Election - M4 sending PROMISE message to M6, proposal number: 1847501865
+[pool-1-thread-7] INFO Election - Current max proposal of M4: 1853305771
+[pool-1-thread-7] INFO Election - M4 sending PROMISE message to M6, proposal number: 1853305771
 [pool-1-thread-8] INFO Election - M6 received PROMISE message from M4, with candidate: null
-[pool-1-thread-9] INFO Election - Current max proposal of M5: 1847501865
-[pool-1-thread-9] INFO Election - M5 sending PROMISE message to M6, proposal number: 1847501865
+[pool-1-thread-9] INFO Election - Current max proposal of M5: 1853305771
+[pool-1-thread-9] INFO Election - M5 sending PROMISE message to M6, proposal number: 1853305771
 [pool-1-thread-10] INFO Election - M6 received PROMISE message from M5, with candidate: null
 [pool-1-thread-10] INFO Election - Current candidate: M1
 [pool-1-thread-10] INFO Election - M6 selected candidate M1 for proposal.
-[pool-1-thread-10] INFO Election - Member: M6, Proposal: 1847501865, Candidate: M1
-[pool-1-thread-10] INFO Election - M6 broadcasting PROPOSE message, proposal number: 1847501865, candidate: M1
-[pool-1-thread-2] INFO Election - M1 sending ACCEPT message to M6, proposal number: 1847501865, candidate: M1
-[pool-1-thread-1] INFO Election - Current max proposal of M7: 1847501865
-[pool-1-thread-1] INFO Election - M7 sending PROMISE message to M6, proposal number: 1847501865
-[pool-1-thread-6] INFO Election - M2 sending ACCEPT message to M6, proposal number: 1847501865, candidate: M1
-[pool-1-thread-8] INFO Election - Current max proposal of M8: 1847501865
-[pool-1-thread-8] INFO Election - M8 sending PROMISE message to M6, proposal number: 1847501865
-[pool-1-thread-4] INFO Election - M3 sending ACCEPT message to M6, proposal number: 1847501865, candidate: M1
-[pool-1-thread-5] INFO Election - Current max proposal of M9: 1847501865
-[pool-1-thread-5] INFO Election - M9 sending PROMISE message to M6, proposal number: 1847501865
-[pool-1-thread-1] INFO Election - M4 sending ACCEPT message to M6, proposal number: 1847501865, candidate: M1
-[pool-1-thread-9] INFO Election - M5 sending ACCEPT message to M6, proposal number: 1847501865, candidate: M1
+[pool-1-thread-10] INFO Election - Member: M6, Proposal: 1853305771, Candidate: M1
+[pool-1-thread-10] INFO Election - M6 broadcasting PROPOSE message, proposal number: 1853305771, candidate: M1
+[pool-1-thread-2] INFO Election - M1 sending ACCEPT message to M6, proposal number: 1853305771, candidate: M1
+[pool-1-thread-1] INFO Election - Current max proposal of M7: 1853305771
+[pool-1-thread-1] INFO Election - M7 sending PROMISE message to M6, proposal number: 1853305771
+[pool-1-thread-6] INFO Election - M2 sending ACCEPT message to M6, proposal number: 1853305771, candidate: M1
+[pool-1-thread-8] INFO Election - Current max proposal of M8: 1853305771
+[pool-1-thread-8] INFO Election - M8 sending PROMISE message to M6, proposal number: 1853305771
+[pool-1-thread-6] INFO Election - M3 sending ACCEPT message to M6, proposal number: 1853305771, candidate: M1
+[pool-1-thread-5] INFO Election - Current max proposal of M9: 1853305771
+[pool-1-thread-5] INFO Election - M9 sending PROMISE message to M6, proposal number: 1853305771
+[pool-1-thread-1] INFO Election - M4 sending ACCEPT message to M6, proposal number: 1853305771, candidate: M1
+[pool-1-thread-9] INFO Election - M5 sending ACCEPT message to M6, proposal number: 1853305771, candidate: M1
 [pool-1-thread-8] INFO Election - 
 
-Consensus reached on proposal: 1847501865, candidate: M1!
+Consensus reached on proposal: 1853305771, candidate: M1!
